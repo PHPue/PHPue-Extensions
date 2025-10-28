@@ -5,16 +5,16 @@
 
   <h2>📦 Branch Overview</h2>
   <ul>
-    <li><strong><a href="#framework-extensions">Framework Extensions</a></strong> — Extensions that modify or extend the core functionality of PHPue’s framework, improving performance, usability, or introducing new built-in features.</li>
-    <li><strong><a href="#phpue-extensions">PHPue Extensions</a></strong> — Extensions that integrate directly into the backend/, httpReqs/, components/ or views/.</li>
-    <li><strong><a href="#client-side-extensions">Client-Side Extensions</a></strong> — Extensions focused on enhancing the client-side experience, such as JavaScript-driven features, asset management, or interactive UI components.</li>
+    <li><strong><a href="https://github.com/ShinkuKira21/Framework-Extensions/tree/Framework-Extensions">Framework Extensions</a></strong> — Extensions that modify or extend the core functionality of PHPue’s framework, improving performance, usability, or introducing new built-in features.</li>
+    <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/PHPue-Extensions">PHPue Extensions</a></strong> — Extensions that integrate directly into the backend/, httpReqs/, components/ or views/.</li>
+    <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Client-Side-Extensions">Client-Side Extensions</a></strong> — Extensions focused on enhancing the client-side experience, such as JavaScript-driven features, asset management, or interactive UI components.</li>
   </ul>
 
   <h2>🔧 Framework Extensions</h2>
   <p>This branch includes extensions that enhance the core PHPue framework, or other changes to the framework's behaviour.</p>
 
   <h2>🔑 PHPue Extensions</h2>
-  <p>This branch contains extensions that directly integrate with PHPue’s backend, httpReqs or even give different and exciting PHPue Components and View layouts. These can be used to manage server-side content like session variables, header injection, or custom logic for dynamic page titles and meta tags.</p>
+  <p>This branch contains extensions that directly integrate with PHPue’s backend, httpReqs or even give different and exciting PHPue Components and View layouts. These can be used to manage server-side content or create exciting new templates.</p>
 
   <h2>🌐 Client-Side Extensions</h2>
   <p>This branch includes client-side extensions that add interactive features or improve asset management on the front end.</p>
