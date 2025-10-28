@@ -1,0 +1,34 @@
+<!-- Author: Edward Patch -->
+<script>
+    #require 'views/index.pvue';
+
+    // Get MetaControl Extension instance!
+    $pageMeta = \PHPueExt\MetaControl::getInstance();
+
+    // if user navigates away or opens instance
+    if ($pageMeta->getRendered()) {
+        $pageMeta->unsetMetaVariables();
+        $pageMeta->setRendered(false);
+    }
+
+    // fetch page title
+    $pageTitle = $pageMeta->getMetaVariable('page-title');
+
+    // compile page title into HTML header
+    if(!empty($pageTitle))
+        $pageTitle = "<title>$pageTitle</title>";
+
+    // if page has been rendered, mark as true, so next time the App is rendered it unsets :)
+    $pageMeta->setRendered(true);
+</script>
+
+<!-- If you didn't read the README.md: App.pvue is dynamic headers with PHPue Context Aware var outputting, or Static HTML. We can't use PHP unless PHPue has changed since this release. -->
+<header>
+    <!-- Loads in <title>Page Title Value</title> -->
+    {{$pageTitle}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</header>
+
+<template>
+    <View></View>
+</template>
