@@ -5,7 +5,7 @@
 
   <h2>📦 Branch Overview</h2>
   <ul>
-    <li><strong><a href="https://github.com/ShinkuKira21/Framework-Extensions/tree/Framework-Extensions">Framework Extensions</a></strong> — Extensions that modify or extend the core functionality of PHPue’s framework, improving performance, usability, or introducing new built-in features.</li>
+    <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Framework-Extensions">Framework Extensions</a></strong> — Extensions that modify or extend the core functionality of PHPue’s framework, improving performance, usability, or introducing new built-in features.</li>
     <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/PHPue-Extensions">PHPue Extensions</a></strong> — Extensions that integrate directly into the backend/, httpReqs/, components/ or views/.</li>
     <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Client-Side-Extensions">Client-Side Extensions</a></strong> — Extensions focused on enhancing the client-side experience, such as JavaScript-driven features, asset management, or interactive UI components.</li>
   </ul>
