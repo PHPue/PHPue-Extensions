@@ -1,3 +1,9 @@
+<div style="background: #f8d7da; border-left: 6px solid #f5c6cb; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
+  ⚠️ <strong>Production Notice:</strong> Use only the <code>backend/</code> folder for production.
+  The <code>example/</code> folder is educational only and may not work with the latest framework version.
+</div>
+
+
 <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
   <h1 style="color: #333;">MetaControl in PHPue</h1>
 
