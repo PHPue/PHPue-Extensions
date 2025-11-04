@@ -1,0 +1,26 @@
+<script>
+$pageMeta = \PHPueExt\MetaControl::getInstance();
+// Change if ?page-title="Page Name" given
+if (isset($_GET['page-title'])) {
+$pageMeta->setMetaVariable('page-title', 'UE-abc');
+$_SESSION['bMetaSet'] = true;
+}
+
+
+$currentTitle = $pageMeta->getMetaVariable('page-title');
+</script>
+
+
+<!-- views/ only use static headers -->
+<header>
+<!-- Initial Title  -->
+<title>Page Name</title>
+</header>
+
+
+<cscript>
+const currentTitle = "<?= addslashes($currentTitle ?? '') ?>";
+if (currentTitle) {
+document.title = currentTitle;
+}
+</cscript>
