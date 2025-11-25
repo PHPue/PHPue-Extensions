@@ -1,26 +1,62 @@
+<!-- Author: Edward Patch -->
 <script>
-$pageMeta = \PHPueExt\MetaControl::getInstance();
-// Change if ?page-title="Page Name" given
-if (isset($_GET['page-title'])) {
-$pageMeta->setMetaVariable('page-title', 'UE-abc');
-$_SESSION['bMetaSet'] = true;
-}
+    $pageTitle = PHPueIndexMetaExample::getInstance()->getTitle();
 
+    // Extract title text from the <title> tags
+    if (preg_match('/<title>(.*?)<\/title>/', $pageTitle, $matches)) {
+        $pageTitle = $matches[1] ?? '';
+    }
 
-$currentTitle = $pageMeta->getMetaVariable('page-title');
+    @AJAX('POST')
+    function changeTitle($input) {
+        // This AJAX function changes the page title dynamically using MetaControl Extension
+        $pageMeta = \PHPueExt\MetaControl::getInstance();
+
+        $pageMeta->setMetaVariable('page-title', $input['title']);
+    }
 </script>
 
 
 <!-- views/ only use static headers -->
 <header>
-<!-- Initial Title  -->
-<title>Page Name</title>
+    <!-- <title> is defined in App.pvue here! 
+    
+    If you put here, it'll duplicate! -->
+    <meta name="author" content="Edward Patch">
+    <meta name="description" content="This is an example of dynamic SEO titles with PHPue MetaControl Extension.">
 </header>
 
+<template>
+    <h1>PHPue MetaControl SEO Title Example</h1>
+    <p>This example demonstrates how to change the SEO title dynamically using the PHPue MetaControl Extension and AJAX.</p>
+    <p>Click the button below to change the page title to "This Is a Example SEO SSR Title!"</p>
+    <p>In this example, we use line 21-23 to reset SEO Title on refresh! This way you can see how it works, and how to reset the MetaControl for the next page you visit!</p>
+    <button onclick="changeTitle('This Is a Example SEO SSR Title!')">Change Title</button>
+    <button onclick="window.location.reload();">Reset SEO Title</button>
+    <span>---</span> Current Title is: {{ $pageTitle }}
+    <br/><br/>
+    <a href="/Page2">Go to Page 2 (Static SEO Title)</a>
+</template>
 
 <cscript>
-const currentTitle = "<?= addslashes($currentTitle ?? '') ?>";
-if (currentTitle) {
-document.title = currentTitle;
-}
+    // JavaScript function to call the AJAX function to change the title
+    async function changeTitle(title) {
+        try {
+            const response = await fetch('', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    action: 'changeTitle',
+                    title: title
+                })
+            });
+            
+            if (response.ok) {
+                // Reload the page so that the server can send the updated title
+               window.location.reload();
+            }
+        } catch (error) {
+            console.log('Error clearing title:', error);
+        }
+    }
 </cscript>

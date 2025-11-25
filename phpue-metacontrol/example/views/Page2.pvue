@@ -1,0 +1,12 @@
+<!-- Author: Edward Patch -->
+<header>
+    <title>Page Two SEO Title</title>
+    <meta name="author" content="Edward Patch">
+    <meta name="description" content="This is an example of static SEO titles with PHPue MetaControl Extension.">
+</header>
+
+<template>
+    Current Title is static! --- <b>Page Two SEO Title</b>
+    <br/><br/>
+    <a href="/">Go to Index (Dynamic SEO Title)</a> - You should see "Initial SSR Title" as the Meta Title.
+</template>

@@ -1,108 +1,199 @@
-<div style="background: #f8d7da; border-left: 6px solid #f5c6cb; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
-  ⚠️ <strong>Production Notice:</strong> Use only the <code>backend/</code> folder for production.
-  The <code>example/</code> folder is educational only and may not work with the latest framework version.
-</div>
+# MetaControl in PHPue — Full Explanation
 
+MetaControl is a PHPue extension designed to provide dynamic server-side metadata control, even inside header sections where PHP normally cannot be executed. PHPue restricts dynamic PHP execution inside &lt;header&gt; blocks in .pvue files, so MetaControl works as a central metadata store that can be read by the global layout (App.pvue) and by any view or backend helper.
 
-<div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
-  <h1 style="color: #333;">MetaControl in PHPue</h1>
+MetaControl makes it possible to define metadata once, anywhere in your app, and use it across the rendering pipeline:
 
-  <!-- Warning Banner -->
-  <div style="background: #fff3cd; border-left: 6px solid #ffeeba; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
-    ⚠️ <strong>Compatibility Notice:</strong> This extension relates to the issue 
-    <a href="https://github.com/ShinkuKira21/PHPue/issues/6">"Known Header Issue - Injects Static HTML instead of Dynamic PHP #6"</a>. 
-    It <strong>won't work</strong> if you are using PHPue Framework Alpha (No Version Number).
-  </div>
+- in views
 
-  <h2 style="color: #333;">📥 Installation</h2>
-  <p>Upload to your PHPue project:</p>
-  <ul>
-    <li>Add <code>phpue-metacontrol.ext.php</code> to <code>backend/</code></li>
-    <li>Already loaded and ready to use</li>
-  </ul>
+- in backend classes
 
-  <p><strong>MetaControl</strong> is PHPue's built-in class for managing page-level metadata dynamically. It allows you to control titles, meta descriptions, keywords, and other variables across your pages without repeating code.</p>
+- during AJAX requests
 
-  <h2 style="color: #333;">⚙️ How It Works</h2>
-  <ol>
-    <li>
-      <strong>Get the MetaControl instance:</strong>
-      <pre style="background: #f4f4f4; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>$pageMeta = \PHPueExt\MetaControl::getInstance();</code></pre>
-    </li>
-    <li>
-      <strong>Set meta variables for the current page:</strong>
-      <pre style="background: #f4f4f4; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>$pageMeta->setMetaVariable('page-title', 'My Awesome Page');
-$pageMeta->setMetaVariable('description', 'A short description of this page.');</code></pre>
-    </li>
-    <li>
-      <strong>Retrieve meta variables anywhere in your view:</strong>
-      <pre style="background: #f4f4f4; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>$currentTitle = $pageMeta->getMetaVariable('page-title');</code></pre>
-    </li>
-  </ol>
+- inside the global layout (App.pvue)
 
-  <h2 style="color: #333;">🖥 App.pvue Example</h2>
-  <p>Use MetaControl in your main app wrapper to manage page titles dynamically:</p>
-  <pre style="background: #272822; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>&lt;script&gt;
+This avoids duplication and makes it possible to build SEO-correct pages with both SSR and dynamic updates.
+
+## Core Principles
+1. Global Shared Singleton
+
+Every part of PHPue retrieves the same MetaControl instance:
+
+```php
 $pageMeta = \PHPueExt\MetaControl::getInstance();
+```
 
-// If user navigates away or opens instance
-if ($pageMeta->getRendered()) {
-    $pageMeta->unsetMetaVariables();
-    $pageMeta->setRendered(false);
-}
 
-$pageTitle = $pageMeta->getMetaVariable('page-title');
+This ensures that metadata set in one location is immediately available everywhere else within the same request.
 
-if (!empty($pageTitle))
-    $pageTitle = "&lt;title&gt;$pageTitle&lt;/title&gt;";
+2. Dynamic Metadata Storage
 
-$pageMeta->setRendered(true);
-&lt;/script&gt;
+You can store any metadata under a key:
 
-&lt;!-- App.pvue only use static headers unless you use {{ $var }} 
-(PHP IS NOT ALLOWED - AT LEAST THIS WAS THE CASE WHEN THIS WAS DESIGNED 
-(HENCE THE EXTENSION)) --&gt;
-&lt;header&gt;
-    {{$pageTitle}}
-&lt;/header&gt;
-</code></pre>
+```php
+$pageMeta->setMetaVariable('page-title', 'Home Page');
+```
 
-  <h2 style="color: #333;">📄 views/index.pvue Example</h2>
-  <p>Set or update page metadata within a specific view:</p>
-  <pre style="background: #272822; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;"><code>&lt;script&gt;
-$pageMeta = \PHPueExt\MetaControl::getInstance();
 
-// Change if ?page-title="Page Name" given
-if (isset($_GET['page-title'])) {
-    $pageMeta->setMetaVariable('page-title', 'UE-abc');
-    $_SESSION['bMetaSet'] = true;
-}
+But MetaControl is not limited to titles.
 
+**You can store:**
+
+- descriptions
+
+- keywords
+
+- OpenGraph tags
+
+- Twitter Card tags
+
+- robots rules
+
+- canonical URLs
+
+- custom per-page metadata
+
+For example:
+
+```php
+$pageMeta->setMetaVariable('description', 'This is the page description.');
+$pageMeta->setMetaVariable('keywords', 'php, phpue, framework, seo');
+$pageMeta->setMetaVariable('og:title', 'OpenGraph Title Here');
+$pageMeta->setMetaVariable('og:description', 'OpenGraph description text.');
+$pageMeta->setMetaVariable('canonical', 'https://example.com/page');
+```
+
+Anything stored this way can later be retrieved in App.pvue or anywhere else:
+
+```php
+$pageMeta->getMetaVariable('description');
+$pageMeta->getMetaVariable('og:title');
+```
+
+This makes MetaControl a universal metadata manager.
+
+3. Reading Metadata Anywhere
+
+Because MetaControl is globally accessible, any part of the application can read stored values:
+
+```php
 $currentTitle = $pageMeta->getMetaVariable('page-title');
-&lt;/script&gt;
+$currentDescription = $pageMeta->getMetaVariable('description');
+```
 
-&lt;!-- views/ only use static headers --&gt;
-&lt;header&gt;
-   &lt;!-- Initial Title  --&gt;
-   &lt;title&gt;Page Name&lt;/title&gt; 
-&lt;/header&gt;
 
-&lt;cscript&gt;
-const currentTitle = "&lt;?= addslashes($currentTitle ?? '') ?&gt;";
-if (currentTitle) {
-    document.title = currentTitle;
+This is particularly important in:
+
+your backend SEO helper
+
+- App.pvue (which outputs the header section)
+
+- views
+
+- AJAX controllers
+
+4. Automatic Resetting Between Pages
+
+MetaControl tracks when a page has already rendered.
+If the user refreshes or navigates to another route:
+
+```php
+if($pageMeta->getRendered()) {
+    $pageMeta->unsetMetaVariables();
 }
-&lt;/cscript&gt;
-</code></pre>
+```
 
-  <h2 style="color: #333;">✨ Key Features</h2>
-  <ul>
-    <li><strong>Singleton access:</strong> Only one instance per page ensures consistency.</li>
-    <li><strong>Dynamic updates:</strong> Change metadata without hardcoding values in your HTML head.</li>
-    <li><strong>Session awareness:</strong> Track if metadata has been set using <code>$_SESSION['bMetaSet']</code>.</li>
-    <li><strong>Framework-agnostic:</strong> Works in any PHPue page without extra setup.</li>
-  </ul>
 
-  <h2 style="color: #333;">🚀 Summary</h2>
-  <p>With <strong>MetaControl</strong>, your PHPue pages remain organized, dynamic, and SEO-ready without repetitive boilerplate. Set your metadata once and access it anywhere in your page templates or views.</p>
-</div>
+This ensures metadata does not “bleed” from one page to another.
+
+How Your Setup Works
+
+backend/seo-helper/seoMetaIndex.php
+
+This file:
+
+- Reads stored metadata from MetaControl.
+
+- Builds a valid &lt;title&gt; tag based on the stored title.
+
+- Falls back to "Initial SSR Title" if no title has been set yet.
+
+- Resets metadata after the page is rendered.
+
+- Although it currently manages only the title, it can be extended to produce additional tags such as:
+
+```php
+<meta name="description" content="...">
+<meta property="og:title" content="...">
+```
+
+Because MetaControl stores any key, this class can easily output a full SEO block.
+
+**App.pvue**
+
+App.pvue is responsible for outputting dynamic &lt;header&gt; HTML.
+
+Since PHP cannot execute directly in the header, App.pvue uses PHPue’s context-aware variable system:
+
+{{$pageTitle}}
+
+
+App.pvue retrieves its header values from your backend helper.
+Anything you store in MetaControl can be retrieved here and included in the header.
+
+You could eventually print multiple metadata values like:
+
+{{$pageTitle}}
+{{$metaDescription}}
+{{$ogTags}}
+{{$twitterTags}}
+
+---
+
+**views/index.pvue**
+
+index.pvue modifies metadata dynamically:
+
+It reads the title via your helper.
+
+It exposes an AJAX function that updates metadata:
+
+```php
+$pageMeta->setMetaVariable('page-title', $input['title']);
+```
+
+This same method works for any other metadata:
+
+```php
+$pageMeta->setMetaVariable('description', $input['desc']);
+$pageMeta->setMetaVariable('og:image', $input['ogImage']);
+```
+
+After an AJAX update, you simply reload the page, and App.pvue will produce new SSR header output.
+
+---
+
+**Page2.pvue**
+
+This demonstrates static SEO metadata and shows that MetaControl resets between pages to prevent contamination.
+
+## Summary
+
+- MetaControl is a flexible metadata management system for PHPue.
+It provides the following capabilities:
+
+- Stores any kind of metadata dynamically.
+
+- Accessible globally through a shared singleton.
+
+- Works with titles, descriptions, keywords, canonical URLs, OpenGraph data, and more.
+
+- Solves PHPue’s restriction on dynamic PHP inside &lt;header&gt; sections.
+
+- Integrates cleanly with backend helpers, SSR, and AJAX.
+
+- Automatically resets metadata when navigating to a new page.
+
+**The key idea is:**
+
+Anything you can store with ``` $pageMeta->setMetaVariable('key', 'value') ``` can be dynamically output in App.pvue’s header. **Note:** Just make sure {{ $containsVar }} (safe) rather than {{ $pageMeta->setMetaVariable('key', 'value') }} (unsafe).
