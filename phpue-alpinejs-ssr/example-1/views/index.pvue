@@ -1,0 +1,197 @@
+<!-- Author: Edward Patch -->
+<script>
+    // Server-side data simulation
+    if(isset($_SESSION['user'])) {
+        $user = $_SESSION['user'];
+    } else {
+        $user = [
+            'isLoggedIn' => true,
+            'name' => 'Edward Patch'
+        ];
+        
+        $_SESSION['user'] = $user;
+    }
+
+    if(isset($_SESSION['notifications'])) {
+        $notifications = $_SESSION['notifications'];
+    } else {
+        $notifications = [
+            ['id' => 1, 'content' => 'Server update scheduled for 2AM.'],
+            ['id' => 2, 'content' => 'New pull request assigned to you.'],
+            ['id' => 3, 'content' => 'Remember to run npm run build!']
+        ];
+
+        $_SESSION['notifications'] = $notifications;
+    }
+
+    @AJAX('POST')
+    function dismissNotification($input) {
+        $id = $input['id'];
+        $notifications = $_SESSION['notifications'];
+
+        // Filter out the dismissed notification
+        $notifications = array_filter($notifications, function($note) use ($id) {
+            return $note['id'] != $id;
+        });
+
+        $_SESSION['notifications'] = array_values($notifications);
+
+        echo json_encode(['status' => 'success', 'remaining' => count($notifications)]);
+    }
+
+    @AJAX('POST')
+    function resetNotifications() {
+       $notifications = [
+            ['id' => 1, 'content' => 'Server update scheduled for 2AM.'],
+            ['id' => 2, 'content' => 'New pull request assigned to you.'],
+            ['id' => 3, 'content' => 'Remember to run npm run build!']
+        ];
+
+        $_SESSION['notifications'] = $notifications;
+
+        echo json_encode([
+            'status' => 'success', 
+            'notifications' => $notifications,
+            'count' => count($notifications)
+        ]);
+    }
+</script>
+
+<template>
+    <div class="p-8 antialiased" x-data="notificationHandler">
+        <div p-if="$user['isLoggedIn']" class="mb-4">
+            <h2 class="text-2xl font-bold">Welcome, {{ $user['name'] }}</h2>
+        </div>
+
+        <div class="flex gap-4 mb-4">
+            <button @click="isOpen = !isOpen" class="bg-blue-600 text-white px-4 py-2 rounded shadow">
+                View Notifications (<span x-text="notificationCount"></span>)
+            </button>
+            <button @click="reset()" class="bg-gray-600 text-white px-4 py-2 rounded shadow">
+                Reset Notifications
+            </button>
+        </div>
+
+        <div x-show="isOpen" class="mt-4 border-l-4 border-blue-500 pl-4">
+            <div x-ssr="notifications">
+                <div p-for="$note in $notifications">
+                    <div data-id="{{ $note['id'] }}" 
+                        class="notification-item flex items-center justify-between py-2 border-b last:border-0">
+                        <span>{{ $note['content'] }}</span>
+                        <button @click="dismiss({{$note['id']}})" 
+                                class="text-red-500 text-sm hover:underline">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div x-show="notifications.length === 0" class="text-gray-500 py-2">
+                No notifications
+            </div>
+        </div>
+    </div>
+</template>
+
+<cscript>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('notificationHandler', () => ({
+        isOpen: false,
+        notifications: <?= json_encode($notifications) ?>,
+        
+        // Single csrTemplate
+        csrTemplate: {
+            html: `
+                <div data-id="\${item.id}" 
+                    class="notification-item flex items-center justify-between py-2 border-b last:border-0">
+                    <span>\${item.content}</span>
+                    <button class="text-red-500 text-sm hover:underline">
+                        Dismiss
+                    </button>
+                </div>
+            `,
+            process: function(element, item, component) {
+                // Set up event listeners after element is created
+                const button = element.querySelector('button');
+                button.onclick = (e) => {
+                    e.preventDefault();
+                    if (component.dismiss) {
+                        component.dismiss(item.id);
+                    }
+                };
+            }
+        },
+        
+        init() {
+            console.log('🔔 Notification handler initialized', this.notifications);
+            
+            // DEBUG: Check if x-ssr element exists
+            const xssrElement = this.$el.querySelector('[x-ssr="notifications"]');
+            console.log('🔍 x-ssr element found:', xssrElement);
+            console.log('🔍 Element has Alpine binding?', xssrElement && xssrElement.__x);
+            
+            // DEBUG: Check if directive was applied
+            console.log('🔍 Alpine.bindings.ssr exists?', window.Alpine && window.Alpine.bindings && window.Alpine.bindings.ssr);
+        },
+        
+        get notificationCount() {
+            return this.notifications.length;
+        },
+        
+        dismiss(id) {
+            console.log('Alpine dismiss called for id:', id);
+            
+            // UI update
+            const originalNotifications = [...this.notifications];
+            this.notifications = this.notifications.filter(n => n.id != id);
+            
+            // Server sync
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'dismissNotification', 
+                    id: id 
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('✅ Notification dismissed on server');
+                } else {
+                    // Rollback on error
+                    this.notifications = originalNotifications;
+                    console.error('❌ Failed to dismiss notification');
+                }
+            })
+            .catch(error => {
+                // Rollback on error
+                this.notifications = originalNotifications;
+                console.error('❌ Network error:', error);
+            });
+        },
+        
+        reset() {
+            console.log('Alpine reset called');
+            
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    action: 'resetNotifications' 
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.notifications = data.notifications;
+                    console.log('✅ Notifications reset', data.notifications);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Failed to reset:', error);
+            });
+        }
+    }));
+});
+</cscript>

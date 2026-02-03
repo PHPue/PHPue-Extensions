@@ -1,0 +1,34 @@
+<!-- Author: Edward Patch -->
+<!-- EXAMPLE PHPue - ALPINE.JS SSR EXTENSION (CSR EXTENSIONS) -->
+<!-- Usage? Use with PHPue, or other PHP Applications (OR) raw HTML + CSS + JS -->
+<!-- Why did I implement x-ssr? Giving AlpineJS Server-Side sync, means we get SEO/No JS Fallback,
+    and we regain SSR/CSR reactivity! x-ssr attribute is indeed faster as well than traditional x-for! -->
+<!-- This addresses AlpineJS issues:
+    1.1: https://github.com/alpinejs/alpine/issues/196
+    1.2: Bind x-for items to server rendered items #196
+    2.1: https://github.com/alpinejs/alpine/issues/329
+    2.2: x-for - how to use with pre-existing lists in html? #329
+    3.1: https://github.com/alpinejs/alpine/issues/450 
+    3.2: ([Bug] x-for should generate valid/compliant html when used on elements such as lists, tables, selects etc #450
+-->
+<!-- This Example shows off the power of x-ssr! -->
+<script>
+    #require 'views/index.pvue';
+</script>
+
+<header>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="assets/img/favicon_io/favicon.ico" type="image/x-icon"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Load Alpine first! (Recommended: Defer this script!) -->
+    <script defer src="/assets/js/phpue-ext-csr/alpine.min.js"></script>
+    <!-- Load alpine.ext.min.ssr.js (Deferring / Async, will cause timing issues!) -->
+    <script src="/assets/js/phpue-ext-csr/alpine.ext.min.ssr.js"></script>
+</header>
+
+<template>
+    <View></View>
+</template>

@@ -1,0 +1,112 @@
+<!-- Author: Edward Patch -->
+<script>
+    // Server-side data simulation
+    if(isset($_SESSION['user'])) {
+        $user = $_SESSION['user'];
+    } else {
+        $user = [
+            'isLoggedIn' => true,
+            'name' => 'Edward'
+        ];
+        
+        $_SESSION['user'] = $user;
+    }
+
+    if(isset($_SESSION['notifications'])) {
+        $notifications = $_SESSION['notifications'];
+    } else {
+        $notifications = [
+            ['id' => 1, 'content' => 'Server update scheduled for 2AM.'],
+            ['id' => 2, 'content' => 'New pull request assigned to you.'],
+            ['id' => 3, 'content' => 'Remember to celebrate x-ssr!']
+        ];
+
+        $_SESSION['notifications'] = $notifications;
+    }
+
+
+    @AJAX('POST')
+    function dismissNotification($input) {
+        $id = $input['id'];
+        $notifications = $_SESSION['notifications'];
+
+        // Filter out the dismissed notification
+        $notifications = array_filter($notifications, function($note) use ($id) {
+            return $note['id'] != $id;
+        });
+
+        $_SESSION['notifications'] = array_values($notifications);
+
+        echo json_encode(['status' => 'success', 'remaining' => count($notifications)]);
+    }
+
+    @AJAX('POST')
+    function resetNotifications() {
+       $notifications = [
+            ['id' => 1, 'content' => 'Server update scheduled for 2AM.'],
+            ['id' => 2, 'content' => 'New pull request assigned to you.'],
+            ['id' => 3, 'content' => 'Remember to celebrate x-ssr!']
+        ];
+
+        $_SESSION['notifications'] = $notifications;
+
+        echo json_encode([
+            'status' => 'success', 
+            'notifications' => $notifications,
+            'count' => count($notifications)
+        ]);
+    }
+</script>
+
+<header>
+    <!-- Create your Alpine Definitions (or) you can define inside cscript -->
+    <!-- Look into Example-1/ (rename it to index.pvue) -->
+    <script src="/assets/js/handlers/notifs-alpine.js"></script>
+</header>
+
+<template>
+    <div class="p-8 antialiased" x-data="notificationHandler">
+        <div p-if="$user['isLoggedIn']" class="mb-4">
+            <h2 class="text-2xl font-bold">Welcome, {{ $user['name'] }}</h2>
+        </div>
+
+        <div class="flex gap-4 mb-4">
+            <button @click="isOpen = !isOpen" class="bg-blue-600 text-white px-4 py-2 rounded shadow">
+                View Notifications (<span x-text="notificationCount"></span>)
+            </button>
+            <button @click="reset()" class="bg-gray-600 text-white px-4 py-2 rounded shadow">
+                Reset Notifications
+            </button>
+        </div>
+
+        <div x-show="isOpen" class="mt-4 border-l-4 border-blue-500 pl-4">
+            <!-- Tells Alpine to monitor Notifications variable (found in notifs-alpine.js) 
+                (CSR monitoring) -->
+            <div x-ssr="notifications">
+                <!-- PHP FOR EACH $notifications as $note -->
+                <div p-for="$note in $notifications">
+                    <!-- Set data-id to PHP var $note['id'] (used to remove elements) -->
+                    <div data-id="{{ $note['id'] }}" 
+                        class="notification-item flex items-center justify-between py-2 border-b last:border-0">
+                        <span>{{ $note['content'] }}</span>
+                        <!-- Set @click to dismiss with arg $note['id'] (1, 2, 3...) -->
+                        <button @click="dismiss({{$note['id']}})" 
+                                class="text-red-500 text-sm hover:underline">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div x-show="notifications.length === 0" class="text-gray-500 py-2">
+                No notifications
+            </div>
+        </div>
+    </div>
+</template>
+
+<cscript>
+    // Sets window.notifications = &lt;?= json_encode($notifications...) ?&gt;;
+    // so that it can be accessed inside /assets/js/logic/notifs.alpine.js
+    window.notifications = {{ $notifications }};
+</cscript>
