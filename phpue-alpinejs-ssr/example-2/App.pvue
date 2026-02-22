@@ -24,9 +24,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <!-- Load Alpine first! (Recommended: Defer this script!) -->
-    <script defer src="/assets/js/fworks/alpine.min.js"></script>
+    <script defer src="/assets/js/phpue-ext-csr/alpine.min.js"></script>
     <!-- Load alpine.ext.min.ssr.js (Deferring / Async, will cause timing issues!) -->
-    <script src="/assets/js/fworks/alpine.ext.ssr.js"></script>
+    <script src="/assets/js/phpue-ext-csr/alpine.ext.min.ssr.js"></script>
 </header>
 
 <template>
