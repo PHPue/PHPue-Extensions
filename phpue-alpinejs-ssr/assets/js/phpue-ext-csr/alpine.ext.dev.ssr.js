@@ -46,10 +46,11 @@ const DEVMODE = true;
             
             if(DEVMODE) console.log(`🔧 x-ssr config: key="${itemKey}", template="${templateName}"`);
             
-            // Store server-rendered items
+            // Store server-rendered items (direct children or wrapped in divs)
             const serverItems = [];
+            const directItems = el.querySelectorAll(`:scope > [data-${itemKey}]`);
+            directItems.forEach(item => serverItems.push(item));
             const childDivs = el.querySelectorAll(':scope > div');
-            
             childDivs.forEach(childDiv => {
                 const items = childDiv.querySelectorAll(`[data-${itemKey}]`);
                 items.forEach(item => serverItems.push(item));
@@ -128,16 +129,36 @@ const DEVMODE = true;
                 if (typeof dataItem === 'object') {
                     Object.keys(dataItem).forEach(prop => {
                         const placeholder = `\${item.${prop}}`;
-                        const value = escapeHTML(dataItem[prop]);
+                        const value = escapeHTML(dataItem[prop] ?? '');
                         while (html.includes(placeholder)) {
                             html = html.replace(placeholder, value);
                         }
                     });
                 }
                 
-                const temp = document.createElement('div');
-                temp.innerHTML = html.trim();
-                const newElement = temp.firstChild;
+                // Parse HTML in a context-aware container when parent is table-related.
+                // Otherwise keep legacy div parsing for broad compatibility.
+                let newElement = null;
+                const parentTag = String(el.tagName || '').toUpperCase();
+                if (parentTag === 'TBODY' || parentTag === 'THEAD' || parentTag === 'TFOOT') {
+                    const table = document.createElement('table');
+                    const section = document.createElement(parentTag.toLowerCase());
+                    table.appendChild(section);
+                    section.innerHTML = html.trim();
+                    newElement = section.firstElementChild || section.firstChild;
+                } else if (parentTag === 'TR') {
+                    const table = document.createElement('table');
+                    const tbody = document.createElement('tbody');
+                    const tr = document.createElement('tr');
+                    table.appendChild(tbody);
+                    tbody.appendChild(tr);
+                    tr.innerHTML = html.trim();
+                    newElement = tr.firstElementChild || tr.firstChild;
+                } else {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    newElement = temp.firstChild;
+                }
                 
                 if (!newElement) {
                     console.error('x-ssr: Failed to create element');
@@ -171,8 +192,11 @@ const DEVMODE = true;
                     if(DEVMODE) console.log(`📊 x-ssr: Data updated with ${dataItems.length} items`, dataItems);
                     
                     const dataItemsMap = new Map();
+                    const orderedKeys = [];
                     dataItems.forEach(item => {
-                        dataItemsMap.set(getItemKey(item), item);
+                        const key = getItemKey(item);
+                        orderedKeys.push(key);
+                        dataItemsMap.set(key, item);
                     });
                     
                     // Remove items not in data
@@ -184,23 +208,34 @@ const DEVMODE = true;
                         }
                     });
                     
-                    // Add items not in DOM
-                    dataItemsMap.forEach((dataItem, key) => {
-                        if (!domItems.has(key)) {
+                    // Ensure all items exist, refresh CSR items, and enforce order.
+                    orderedKeys.forEach(key => {
+                        const dataItem = dataItemsMap.get(key);
+                        let domInfo = domItems.get(key);
+
+                        if (!domInfo) {
                             if(DEVMODE) console.log(`➕ x-ssr: Adding item ${key}`);
-                            
                             const serverInfo = serverItemsMap.get(key);
                             if (serverInfo) {
-                                el.appendChild(serverInfo.element);
-                                domItems.set(key, serverInfo);
+                                domInfo = serverInfo;
                             } else {
                                 const newElement = createCSRItem(dataItem);
-                                if (newElement) {
-                                    el.appendChild(newElement);
-                                    domItems.set(key, { element: newElement, key, isCSR: true });
-                                }
+                                if (!newElement) return;
+                                domInfo = { element: newElement, key, isCSR: true };
+                            }
+                            domItems.set(key, domInfo);
+                        } else if (domInfo.isCSR) {
+                            // Re-render existing CSR nodes so value/markup updates are applied.
+                            const refreshedElement = createCSRItem(dataItem);
+                            if (refreshedElement) {
+                                domInfo.element.replaceWith(refreshedElement);
+                                domInfo = { element: refreshedElement, key, isCSR: true };
+                                domItems.set(key, domInfo);
                             }
                         }
+
+                        // Appending an existing node moves it, giving stable order updates.
+                        el.appendChild(domInfo.element);
                     });
                     
                 } catch (error) {
