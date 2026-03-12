@@ -1,4 +1,4 @@
-# PHPue's Maintained AlpineJS (SSR Ready)
+# PHPue's AlpineJS (SSR Ready)
 PHPue's AlpineJS extension focuses on addressing three main issues:
 
 - 1.1: https://github.com/alpinejs/alpine/issues/196
