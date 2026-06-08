@@ -36,22 +36,12 @@
 
                 if(!file_exists($pagePath)) return '';
 
-                // Invalidate OpCache to ensure fresh data
-                if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($pagePath, true);
-                }
-
                 $pageData = include $pagePath;
 
                 $themeName = $pageData['theme'] ?? 'default';
                 $themePath = self::$themesDir . "/{$themeName}.php";
 
                 if(!file_exists($themePath)) return '<p>Theme not found.</p>';
-
-                // Invalidate OpCache for theme file
-                if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($themePath, true);
-                }
 
                 $theme = include $themePath;
                 $sectionRenderers = $theme['sections'];
@@ -134,11 +124,6 @@
 
                 if(!file_exists($themePath))
                     return [];
-
-                // Invalidate OpCache to ensure fresh theme data
-                if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($themePath, true);
-                }
 
                 $theme = include $themePath;
 
