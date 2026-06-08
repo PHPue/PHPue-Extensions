@@ -1,0 +1,183 @@
+
+<!-- Author: Edward Patch -->
+<script>
+// ═══════════════════════════════════════════════
+// PHPue Matrix — Blog Post: "The Art of Slow Living"
+// ═══════════════════════════════════════════════
+
+$sections = [
+    // ── FULL HERO WITH CTA ──
+    [
+        'type' => 'hero',
+        'data' => [
+            'heading' => 'The Art of Slow Living',
+            'subheading' => 'Rediscovering intention, presence, and the beauty of an unhurried life in a world that never stops.',
+            'bg_image' => 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80',
+            'cta_text' => 'Start Reading',
+            'cta_url' => '#start',
+        ],
+    ],
+
+    // ── RICH TEXT: INTRODUCTION ──
+    [
+        'type' => 'content',
+        'data' => [
+            'heading' => 'Why We Rush',
+            'body' => "We live in an age of acceleration. Notifications demand our attention. Calendars overflow. Even our downtime is optimized — podcasts at 2x speed, meditation apps with progress trackers, hobbies turned into side hustles.\n\nSlow living isn't about doing everything at a snail's pace. It's about doing the right things at the right speed. It's about choosing presence over productivity, depth over distraction, and meaning over metrics.\n\nThis isn't a new philosophy. It's ancient wisdom wearing modern clothes.",
+        ],
+    ],
+
+    // ── FULL-WIDTH IMAGE BREAK ──
+    [
+        'type' => 'full-width-image',
+        'data' => [
+            'image' => 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1920&q=80',
+            'alt_text' => 'Misty mountain landscape at dawn',
+            'caption' => 'Nature doesn\'t hurry, yet everything is accomplished. — Lao Tzu',
+        ],
+    ],
+
+    // ── SPLIT: IMAGE + TEXT ──
+    [
+        'type' => 'split-image-text',
+        'data' => [
+            'heading' => 'The Morning Ritual',
+            'body' => "For centuries, humans woke with the sun. There was no alarm clock, no inbox, no scroll. Just light, breath, and the slow unfolding of a new day.\n\nReclaiming your morning doesn't require a 5am wake-up call or a 47-step routine. It starts with one intentional act: a cup of tea held with both hands, five minutes of silence before the screen, a walk around the block without a destination.\n\nThe goal isn't to be productive before breakfast. The goal is to remember you're human before the world asks you to be a machine.",
+            'image' => 'https://images.unsplash.com/photo-1528716321680-815a80cd7d14?auto=format&fit=crop&w=800&q=80',
+            'image_position' => 'right',
+        ],
+    ],
+
+    // ── PULL QUOTE ──
+    [
+        'type' => 'pull-quote',
+        'data' => [
+            'quote' => 'Almost everything will work again if you unplug it for a few minutes — including you.',
+            'author' => 'Anne Lamott',
+            'author_title' => 'Author, Bird by Bird',
+        ],
+    ],
+
+    // ── WIDE CONTENT: PRACTICAL STEPS ──
+    [
+        'type' => 'content-wide',
+        'data' => [
+            'heading' => 'Five Practices to Start Today',
+            'body' => "1. <strong>Single-tasking.</strong> Close the tabs. Put the phone in another room. Do one thing with your full attention — even if it's just washing the dishes.\n\n2. <strong>Create buffers.</strong> Leave 15 minutes between meetings. Arrive early. Give yourself space to transition rather than sprinting from one thing to the next.\n\n3. <strong>Embrace boredom.</strong> Stop reaching for your phone in queues, waiting rooms, or quiet moments. Let your mind wander. That's where creativity lives.\n\n4. <strong>Say no more often.</strong> Every yes is a no to something else. Protect your energy like it's the most valuable currency you own — because it is.\n\n5. <strong>End the day well.</strong> A slow evening ritual — dim lights, a book, gratitude journaling — signals to your nervous system that it's safe to rest.",
+            'bg_color' => 'bg-stone-100',
+        ],
+    ],
+
+    // ── DIVIDER ──
+    [
+        'type' => 'divider',
+        'data' => [],
+    ],
+
+    // ── 3-COLUMN CARD GRID ──
+    [
+        'type' => 'card-grid-3',
+        'data' => [
+            'heading' => 'The Three Pillars of Slow Living',
+            'card1_title' => 'Intentional Time',
+            'card1_body' => 'Design your days around what matters, not what\'s urgent. Block time for deep work, relationships, and rest — then guard it fiercely.',
+            'card1_icon' => 'fa-solid fa-clock',
+            'card2_title' => 'Mindful Consumption',
+            'card2_body' => 'Less stuff, less noise, less information. Choose quality over quantity in what you buy, read, watch, and eat. Your attention is sacred.',
+            'card2_icon' => 'fa-solid fa-leaf',
+            'card3_title' => 'Deep Connection',
+            'card3_body' => 'Replace small talk with real conversation. Replace networking with friendship. Replace scrolling with eye contact. People over platforms.',
+            'card3_icon' => 'fa-solid fa-heart',
+        ],
+    ],
+
+    // ── TESTIMONIAL ──
+    [
+        'type' => 'testimonial',
+        'data' => [
+            'quote' => 'Slow living transformed my relationship with time. I stopped feeling behind and started feeling present. It\'s not about doing less — it\'s about being more.',
+            'author' => 'Maya Chen',
+            'avatar' => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80',
+            'rating' => 5,
+        ],
+    ],
+
+    // ── SPLIT: TWO TEXT COLUMNS ──
+    [
+        'type' => 'split-text-text',
+        'data' => [
+            'left_heading' => 'The Cost of Constant Hustle',
+            'left_body' => "Burnout isn't a badge of honor — it's a signal that something is broken. Research shows that chronic stress impairs memory, weakens the immune system, and accelerates aging.\n\nThe glorification of busyness is a cultural trap. We wear exhaustion like a status symbol while our bodies and relationships quietly deteriorate. The antidote isn't a vacation. It's a different way of being — daily, intentionally, radically.",
+            'right_heading' => 'The Gift of Enough',
+            'right_body' => "There is profound freedom in realizing you already have enough. Enough time. Enough resources. Enough love. The scarcity mindset that drives overwork and overconsumption is a story we've been sold — not a truth we've discovered.\n\nWhen you stop chasing more, you start noticing what's already here. The warmth of sunlight through a window. The taste of a simple meal. The sound of someone you love breathing beside you. This is the slow life. It was always here.",
+        ],
+    ],
+
+    // ── GALLERY ──
+    [
+        'type' => 'gallery-3',
+        'data' => [
+            'image1' => 'https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=400&q=80',
+            'image2' => 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=400&q=80',
+            'image3' => 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80',
+            'caption' => 'Moments of stillness from around the world — captured by those who paused long enough to see them.',
+        ],
+    ],
+
+    // ── FAQ ──
+    [
+        'type' => 'faq',
+        'data' => [
+            'heading' => 'Common Questions About Slow Living',
+            'q1' => 'Isn\'t slow living just for privileged people?',
+            'a1' => 'The principles of slow living — intention, presence, and prioritization — are available to everyone. It doesn\'t require a cabin in the woods or a early retirement. It starts with small choices: a five-minute pause, a mindful meal, a boundary with technology.',
+            'q2' => 'How do I convince my employer to let me slow down?',
+            'a2' => 'Start with evidence. Studies show that rested employees are more creative, make fewer errors, and stay longer. Propose a trial: one meeting-free afternoon per week, or a "no emails after 7pm" policy. Frame it as a productivity strategy, not a personal preference.',
+            'q3' => 'What\'s the first step if I feel completely overwhelmed?',
+            'a3' => 'Stop. Breathe. Cancel one thing on your calendar — just one. Then spend that reclaimed time doing absolutely nothing productive. Sit. Walk. Stare out a window. The first step isn\'t adding a practice. It\'s removing an obligation.',
+        ],
+    ],
+
+    // ── CTA ──
+    [
+        'type' => 'cta',
+        'data' => [
+            'heading' => 'Ready to slow down?',
+            'subheading' => 'Join thousands of readers reclaiming their time, attention, and peace.',
+            'button_text' => 'Join the Movement',
+            'button_url' => '/newsletter',
+        ],
+    ],
+
+    // ── AUTHOR BIO ──
+    [
+        'type' => 'author-bio',
+        'data' => [
+            'name' => 'Edward Patch',
+            'bio' => 'Writer, developer, and slow living advocate based in Wales. Creator of PHPue Matrix. Believes the best technology disappears so life can reappear.',
+            'avatar' => 'https://media.licdn.com/dms/image/v2/D4E03AQGA_1gj5T38ww/profile-displayphoto-crop_800_800/B4EZnkfMe2IwAI-/0/1760475007745?e=1782345600&v=beta&t=8oju07_FwLfbDHLElMQedMyJFLwUZuY-qJ7qWt1pNqs',
+            'social_website' => 'https://phpue.com',
+        ],
+    ],
+
+    // ── RELATED POSTS ──
+    [
+        'type' => 'related-posts',
+        'data' => [
+            'heading' => 'You Might Also Enjoy',
+            'count' => 2,
+        ],
+    ],
+];
+
+$result = \PHPueExt\PHPueMatrix::createPage(
+    'blogs',
+    'the-art-of-slow-living',
+    'default',
+    $sections,
+    'The Art of Slow Living',
+    'live'
+);
+
+var_dump($result);
+</script>

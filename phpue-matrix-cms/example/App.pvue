@@ -1,0 +1,27 @@
+<!-- Author: Edward Patch -->
+<script>
+    define('APP_ROOT', __DIR__);
+</script>
+
+<header>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="PHPue Matrix Extension | Edward Patch">
+    <meta charset="UTF-8">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/assets/css/tailwind-styles.css">
+    
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon_io/favicon-16x16.png">
+    
+    <link rel="stylesheet" href="/assets/css/tailwind-styles.css?v22FEB2026-">
+</header>
+
+<template>
+    <View/>
+</template>

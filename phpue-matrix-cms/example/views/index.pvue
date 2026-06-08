@@ -1,0 +1,95 @@
+<!-- Author: Edward Patch -->
+<template>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:radial-gradient(circle at 50% 30%, rgba(16,185,129,0.06), transparent 70%), #0a0a0a;">
+        
+        <div style="max-width:650px;width:100%;text-align:center;">
+            
+            <!-- Logo -->
+            <div style="margin-bottom:2rem;">
+                <div style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.4rem 1rem;border-radius:2rem;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.05);margin-bottom:1.5rem;">
+                    <span style="width:8px;height:8px;background:#10b981;border-radius:50%;"></span>
+                    <span class="mono" style="font-size:0.7rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:0.15em;">PHPue Matrix CMS</span>
+                </div>
+                <h1 style="font-size:2rem;font-weight:900;color:#fff;margin:0;">Welcome to the Matrix</h1>
+                <p style="color:#6b7280;font-size:0.9rem;margin-top:0.5rem;">Your database-free content engine is ready.</p>
+            </div>
+
+            <!-- Quick Links -->
+            <div style="display:flex;flex-direction:column;gap:0.75rem;max-width:420px;margin:0 auto;">
+                
+                <a href="/phpue-matrix" 
+                   style="display:flex;align-items:center;gap:1rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:1rem 1.25rem;border-radius:1rem;text-decoration:none;transition:all 0.2s;">
+                    <div style="width:2.5rem;height:2.5rem;background:rgba(16,185,129,0.15);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fa-solid fa-pen-to-square" style="color:#10b981;font-size:1.1rem;"></i>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:700;color:#fff;font-size:0.9rem;">Admin Panel</div>
+                        <div style="color:#6b7280;font-size:0.75rem;margin-top:0.15rem;">Full CMS with live preview, 3 admin themes &amp; templates</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color:#10b981;margin-left:auto;font-size:0.8rem;"></i>
+                </a>
+
+                <a href="/create-page" 
+                   style="display:flex;align-items:center;gap:1rem;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);padding:1rem 1.25rem;border-radius:1rem;text-decoration:none;transition:all 0.2s;">
+                    <div style="width:2.5rem;height:2.5rem;background:rgba(168,85,247,0.15);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fa-solid fa-code" style="color:#a855f7;font-size:1.1rem;"></i>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:700;color:#fff;font-size:0.9rem;">Create via Script</div>
+                        <div style="color:#6b7280;font-size:0.75rem;margin-top:0.15rem;">Write pages programmatically in 5 lines of PHP</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color:#a855f7;margin-left:auto;font-size:0.8rem;"></i>
+                </a>
+
+                <a href="/blogs" 
+                   style="display:flex;align-items:center;gap:1rem;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);padding:1rem 1.25rem;border-radius:1rem;text-decoration:none;transition:all 0.2s;">
+                    <div style="width:2.5rem;height:2.5rem;background:rgba(251,191,36,0.15);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fa-solid fa-globe" style="color:#fbbf24;font-size:1.1rem;"></i>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:700;color:#fff;font-size:0.9rem;">View Live Blog</div>
+                        <div style="color:#6b7280;font-size:0.75rem;margin-top:0.15rem;">See your content rendered on the frontend</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color:#fbbf24;margin-left:auto;font-size:0.8rem;"></i>
+                </a>
+            </div>
+
+            <!-- Feature Pills -->
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:2rem;">
+                <span class="mono" style="font-size:0.6rem;color:#6b7280;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:0.35rem 0.75rem;border-radius:2rem;">
+                    📝 Flat-file storage
+                </span>
+                <span class="mono" style="font-size:0.6rem;color:#6b7280;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:0.35rem 0.75rem;border-radius:2rem;">
+                    ⚡ Sub-1ms OpCache
+                </span>
+                <span class="mono" style="font-size:0.6rem;color:#6b7280;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:0.35rem 0.75rem;border-radius:2rem;">
+                    🎨 Theme engine
+                </span>
+                <span class="mono" style="font-size:0.6rem;color:#6b7280;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:0.35rem 0.75rem;border-radius:2rem;">
+                    🔌 Custom shortcodes
+                </span>
+                <span class="mono" style="font-size:0.6rem;color:#6b7280;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:0.35rem 0.75rem;border-radius:2rem;">
+                    ∞ Zero dependencies
+                </span>
+            </div>
+
+            <!-- Footer -->
+            <p class="mono" style="font-size:0.55rem;color:#374151;text-transform:uppercase;letter-spacing:0.2em;margin-top:2.5rem;">
+                Apache 2.0 · <a href="https://phpue.co.uk" style="color:#8b5cf6;text-decoration:none;">Built on PHPue</a>
+            </p>
+        </div>
+    </div>
+</template>
