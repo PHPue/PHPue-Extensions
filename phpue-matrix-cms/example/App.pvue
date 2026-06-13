@@ -1,6 +1,40 @@
 <!-- Author: Edward Patch -->
 <script>
-    define('APP_ROOT', __DIR__);
+    $cmsRoute = 'blogs';
+
+    \PHPueExt\PHPueMatrix::getInstance();
+
+    $cmsSEOMetas = array_fill(0, 9, '');
+
+    if (get_current_route() === 'blogs') {
+        if(isset($_GET['slug'])) {
+            $slug = $_GET['slug'];
+            $cmsSEOMetas = [
+                '<!-- Page Title - Description - Keywords --><title>' . \PHPueExt\PHPueMatrix::getPageTitle($cmsRoute, $slug) . '</title>',
+                '<meta name="description" content="' . \PHPueExt\PHPueMatrix::getPageDescription($cmsRoute, $slug) . '">',
+                '<meta name="keywords" content="' . \PHPueExt\PHPueMatrix::getPageKeywords($cmsRoute, $slug) . '">',
+                '<!-- Social Cards --><meta property="og:title" content="' . \PHPueExt\PHPueMatrix::getPageTitle($cmsRoute, $slug) . '">',
+                '<meta property="og:description" content="' . \PHPueExt\PHPueMatrix::getPageDescription($cmsRoute, $slug) . '">',
+                '<meta property="og:image" content="' . \PHPueExt\PHPueMatrix::getPageOgImage($cmsRoute, $slug) . '">',
+                '<meta name="twitter:image" content="' . \PHPueExt\PHPueMatrix::getPageTwitterImage($cmsRoute, $slug) . '">',
+                '<!-- Link Canonical --><link rel="canonical" href="' . \PHPueExt\PHPueMatrix::getPageCanonical($cmsRoute, $slug) . '">',
+                '<!-- No Index --> <meta name="robots" content="' . \PHPueExt\PHPueMatrix::getPageRobots($cmsRoute, $slug) . '">',
+            ];
+        
+        } else {
+            $cmsSEOMetas = [
+                '<title>Blog | PHPue Matrix</title>',
+                '<meta name="description" content="Articles and insights on flat-file architecture, PHP, and building for the web without the bloat.">',
+                '<meta name="keywords" content="php, flat-file cms, blog, web development">',
+                '<meta property="og:title" content="Blog | PHPue Matrix">',
+                '<meta property="og:description" content="Articles and insights on flat-file architecture, PHP, and building for the web without the bloat.">',
+                '<meta property="og:image" content="/assets/img/og-default.png">',
+                '<meta name="twitter:image" content="/assets/img/og-default.png">',
+                '<link rel="canonical" href="https://yourdomain.com/blogs">',
+                '<meta name="robots" content="index, follow">',
+            ];
+        }
+    }
 </script>
 
 <header>
@@ -8,10 +42,30 @@
     <meta name="author" content="PHPue Matrix Extension | Edward Patch">
     <meta charset="UTF-8">
 
+    <!-- Group 1 -->
+    {$cmsSEOMetas[0]}
+    {$cmsSEOMetas[1]}
+    {$cmsSEOMetas[2]}
+
+    <!-- Group 2 -->
+    {$cmsSEOMetas[3]}
+    {$cmsSEOMetas[4]}
+    {$cmsSEOMetas[5]}
+    {$cmsSEOMetas[6]}
+
+    <!-- Group 3 -->
+    {$cmsSEOMetas[7]}
+
+    <!-- Group 4 -->
+    {$cmsSEOMetas[8]}
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="/assets/css/tailwind-styles.css">
     
@@ -19,7 +73,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon_io/favicon-16x16.png">
     
-    <link rel="stylesheet" href="/assets/css/tailwind-styles.css?v22FEB2026-">
 </header>
 
 <template>

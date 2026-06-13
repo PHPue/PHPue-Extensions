@@ -1,6 +1,5 @@
-<!-- Author: Edward Patch -->
 <script>
-    @require Login 'components/auth/login.pvue';
+    /* Author(s): Edward Patch */
 
     // ═══════════ CMS LOGIC ═══════════
     $activeRoute = $_GET['route'] ?? 'blogs';
@@ -10,7 +9,7 @@
     $themeSections = $theme['sections'] ?? [];
     
     $availableThemes = [];
-    $themeDir = constant('APP_ROOT') . '/backend/phpue-extensions/matrix-cms/themes/';
+    $themeDir = __DIR__ . '/backend/phpue-extensions/matrix-cms/themes/';
     $themeFiles = glob($themeDir . '*.php');
     foreach ($themeFiles as $file) {
         $themeName = basename($file, '.php');
@@ -23,7 +22,7 @@
     
     $fromTemplate = $_GET['from_template'] ?? null;
     if ($fromTemplate && isset($_GET['new'])) {
-        $templatePath = constant('APP_ROOT') . '/backend/phpue-extensions/matrix-cms/pages/templates/' . basename($fromTemplate) . '.php';
+        $templatePath = __DIR__ . '/backend/phpue-extensions/matrix-cms/pages/templates/' . basename($fromTemplate) . '.php';
         if (file_exists($templatePath)) {
             if (function_exists('opcache_invalidate')) opcache_invalidate($templatePath, true);
             $templateData = include $templatePath;
@@ -36,7 +35,7 @@
     }
     
     if ($activeSlug && !$activePage) {
-        $pagePath = constant('APP_ROOT') . '/backend/phpue-extensions/matrix-cms/pages/' . basename($activeRoute) . '/' . basename($activeSlug) . '.php';
+        $pagePath = __DIR__ . '/backend/phpue-extensions/matrix-cms/pages/' . basename($activeRoute) . '/' . basename($activeSlug) . '.php';
         if (file_exists($pagePath)) {
             if (function_exists('opcache_invalidate')) opcache_invalidate($pagePath, true);
             $activePage = include $pagePath;
@@ -44,7 +43,7 @@
     }
 
     $templates = [];
-    $templatesDir = constant('APP_ROOT') . '/backend/phpue-extensions/matrix-cms/pages/templates/';
+    $templatesDir = __DIR__ . '/backend/phpue-extensions/matrix-cms/pages/templates/';
     if (is_dir($templatesDir)) {
         foreach (glob($templatesDir . '*.php') as $templateFile) {
             $tplData = include $templateFile;
@@ -64,6 +63,20 @@
         $title    = $input['title'] ?? 'Untitled';
         $status   = in_array($input['status'] ?? '', ['live', 'draft']) ? $input['status'] : 'draft';
         $sections = $input['sections'] ?? [];
+        
+        // ═══ NEW: Parse SEO data ═══
+        $seo = [
+            'meta_title'       => $input['seo_meta_title'] ?? '',
+            'meta_description' => $input['seo_meta_description'] ?? '',
+            'meta_keywords'    => $input['seo_meta_keywords'] ?? '',
+            'og_title'         => $input['seo_og_title'] ?? '',
+            'og_description'   => $input['seo_og_description'] ?? '',
+            'og_image'         => $input['seo_og_image'] ?? '',
+            'og_type'          => $input['seo_og_type'] ?? 'article',
+            'twitter_card'     => $input['seo_twitter_card'] ?? 'summary_large_image',
+            'canonical_url'    => $input['seo_canonical_url'] ?? '',
+            'noindex'          => !empty($input['seo_noindex']),
+        ];
 
         if (empty($slug) || empty($sections)) {
             http_response_code(400);
@@ -71,7 +84,7 @@
             exit;
         }
 
-        $ok = \PHPueExt\PHPueMatrix::createPage($route, $slug, $theme, $sections, $title, $status);
+        $ok = \PHPueExt\PHPueMatrix::createPage($route, $slug, $theme, $sections, $title, $status, $seo);
         echo json_encode(['success' => $ok, 'slug' => $slug, 'route' => $route, 'path' => "pages/{$route}/{$slug}.php"]);
         exit;
     }
@@ -216,9 +229,9 @@
                     <div class="space-y-0.5 max-h-32 overflow-y-auto">
                         <?php foreach ($routes as $routeKey => $routeData): ?>
                             <a href="?route=<?= urlencode($routeKey) ?>" 
-                            class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition
-                                    <?= ($activeRoute === $routeKey) ? 'font-medium' : 'text-stone-600 hover:bg-stone-50' ?>"
-                                    style="<?= ($activeRoute === $routeKey) ? 'background:var(--admin-accent-light);color:var(--admin-accent-text)' : '' ?>">
+                               class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition
+                                      <?= ($activeRoute === $routeKey) ? 'font-medium' : 'text-stone-600 hover:bg-stone-50' ?>"
+                                      style="<?= ($activeRoute === $routeKey) ? 'background:var(--admin-accent-light);color:var(--admin-accent-text)' : '' ?>">
                                 <span class="flex items-center gap-1.5">
                                     <i class="fa-solid fa-folder text-xs" style="color:<?= ($activeRoute === $routeKey) ? 'var(--admin-accent)' : '#a8a29e' ?>"></i>
                                     /<?= htmlspecialchars($routeKey) ?>
@@ -268,9 +281,9 @@
                         <?php foreach ($pages as $p): ?>
                             <div class="flex items-center group">
                                 <a href="?route=<?= urlencode($activeRoute) ?>&edit=<?= urlencode($p['slug']) ?>" 
-                                class="flex-1 flex items-center justify-between px-3 py-2.5 hover:bg-stone-50 transition text-xs
-                                        <?= ($activeSlug === $p['slug']) ? 'border-l-2 font-medium' : 'text-stone-600' ?>"
-                                        style="<?= ($activeSlug === $p['slug']) ? 'background:var(--admin-accent-light);border-color:var(--admin-accent);color:var(--admin-accent-text)' : '' ?>">
+                                   class="flex-1 flex items-center justify-between px-3 py-2.5 hover:bg-stone-50 transition text-xs
+                                          <?= ($activeSlug === $p['slug']) ? 'border-l-2 font-medium' : 'text-stone-600' ?>"
+                                          style="<?= ($activeSlug === $p['slug']) ? 'background:var(--admin-accent-light);border-color:var(--admin-accent);color:var(--admin-accent-text)' : '' ?>">
                                     <div class="flex items-center gap-2 min-w-0">
                                         <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 <?= $p['status'] === 'live' ? 'bg-emerald-500' : 'bg-amber-400' ?>"></span>
                                         <span class="truncate"><?= htmlspecialchars($p['title']) ?></span>
@@ -317,6 +330,7 @@
 
                         <div id="formFields" class="space-y-4">
                             
+                            <!-- ═══════════ PAGE SETTINGS ═══════════ -->
                             <div class="rounded-2xl border p-4" style="background:var(--admin-card);border-color:var(--admin-card-border)">
                                 <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-3">
                                     <i class="fa-solid fa-gear mr-1.5"></i>Page Settings
@@ -325,28 +339,28 @@
                                     <div>
                                         <label for="pageTitle" class="block text-xs font-medium text-stone-500 mb-1">Title <span class="text-red-400">*</span></label>
                                         <input type="text" id="pageTitle" name="pageTitle" required
-                                            value="<?= htmlspecialchars($activePage['title'] ?? '') ?>"
-                                            class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
-                                            style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
-                                            placeholder="My Page">
+                                               value="<?= htmlspecialchars($activePage['title'] ?? '') ?>"
+                                               class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                               style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                               placeholder="My Page">
                                     </div>
                                     <div>
                                         <label for="pageSlug" class="block text-xs font-medium text-stone-500 mb-1">Slug <span class="text-red-400">*</span></label>
                                         <input type="text" id="pageSlug" name="pageSlug" required
-                                            value="<?= htmlspecialchars($activePage['slug'] ?? $activeSlug ?? '') ?>"
-                                            class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
-                                            style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
-                                            placeholder="my-page"
-                                            <?= ($activePage && $activePage['slug']) ? 'readonly' : '' ?>>
+                                               value="<?= htmlspecialchars($activePage['slug'] ?? $activeSlug ?? '') ?>"
+                                               class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
+                                               style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                               placeholder="my-page"
+                                               <?= ($activePage && $activePage['slug']) ? 'readonly' : '' ?>>
                                     </div>
                                     <div>
                                         <label for="pageRoute" class="block text-xs font-medium text-stone-500 mb-1">Route <span class="text-red-400">*</span></label>
                                         <input type="text" id="pageRoute" name="pageRoute" required
-                                            value="<?= htmlspecialchars($activeRoute) ?>"
-                                            class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
-                                            style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
-                                            placeholder="blogs"
-                                            <?= $activePage ? 'readonly' : '' ?>>
+                                               value="<?= htmlspecialchars($activeRoute) ?>"
+                                               class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
+                                               style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                               placeholder="blogs"
+                                               <?= $activePage ? 'readonly' : '' ?>>
                                     </div>
                                     <div>
                                         <label for="pageStatus" class="block text-xs font-medium text-stone-500 mb-1">Status</label>
@@ -372,6 +386,103 @@
                                 </div>
                             </div>
 
+                            <!-- ═══════════ SEO SETTINGS ═══════════ -->
+                            <div class="rounded-2xl border p-4" style="background:var(--admin-card);border-color:var(--admin-card-border)">
+                                <button type="button" onclick="document.getElementById('seoPanel').classList.toggle('hidden')" 
+                                        class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider text-stone-500">
+                                    <span><i class="fa-solid fa-magnifying-glass mr-1.5"></i>SEO &amp; Social Metadata</span>
+                                    <i class="fa-solid fa-chevron-down text-xs transition" id="seoChevron"></i>
+                                </button>
+                                
+                                <div id="seoPanel" class="<?= empty($activePage['seo']) ? 'hidden' : '' ?> mt-4 space-y-3">
+                                    <div class="grid sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="seo_meta_title" class="block text-xs font-medium text-stone-500 mb-1">Meta Title</label>
+                                            <input type="text" name="seo_meta_title" id="seo_meta_title"
+                                                   value="<?= htmlspecialchars($activePage['seo']['meta_title'] ?? '') ?>"
+                                                   class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                   style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                   placeholder="My Page | Site Name">
+                                        </div>
+                                        <div>
+                                            <label for="seo_meta_keywords" class="block text-xs font-medium text-stone-500 mb-1">Meta Keywords</label>
+                                            <input type="text" name="seo_meta_keywords" id="seo_meta_keywords"
+                                                   value="<?= htmlspecialchars($activePage['seo']['meta_keywords'] ?? '') ?>"
+                                                   class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                   style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                   placeholder="php, cms, flat-file">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="seo_meta_description" class="block text-xs font-medium text-stone-500 mb-1">Meta Description</label>
+                                        <textarea name="seo_meta_description" id="seo_meta_description" rows="2"
+                                                  class="w-full px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                  style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                  placeholder="A brief description of this page..."><?= htmlspecialchars($activePage['seo']['meta_description'] ?? '') ?></textarea>
+                                        <p class="text-xs text-stone-400 mt-1"><span id="seoDescCount">0</span>/160 characters</p>
+                                    </div>
+                                    
+                                    <div class="border-t pt-3" style="border-color:var(--admin-divider)">
+                                        <h4 class="text-xs font-semibold text-stone-500 mb-2">OpenGraph</h4>
+                                        <div class="grid sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label for="seo_og_title" class="block text-xs font-medium text-stone-500 mb-1">OG Title</label>
+                                                <input type="text" name="seo_og_title" id="seo_og_title"
+                                                       value="<?= htmlspecialchars($activePage['seo']['og_title'] ?? '') ?>"
+                                                       class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                       style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                       placeholder="Title for social sharing">
+                                            </div>
+                                            <div>
+                                                <label for="seo_og_image" class="block text-xs font-medium text-stone-500 mb-1">OG Image URL</label>
+                                                <input type="text" name="seo_og_image" id="seo_og_image"
+                                                       value="<?= htmlspecialchars($activePage['seo']['og_image'] ?? '') ?>"
+                                                       class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                       style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                       placeholder="https://...">
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label for="seo_og_description" class="block text-xs font-medium text-stone-500 mb-1">OG Description</label>
+                                            <textarea name="seo_og_description" id="seo_og_description" rows="2"
+                                                      class="w-full px-3 py-1.5 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                      style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                      placeholder="Description for social sharing..."><?= htmlspecialchars($activePage['seo']['og_description'] ?? '') ?></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="border-t pt-3" style="border-color:var(--admin-divider)">
+                                        <h4 class="text-xs font-semibold text-stone-500 mb-2">Advanced</h4>
+                                        <div class="grid sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label for="seo_canonical_url" class="block text-xs font-medium text-stone-500 mb-1">Canonical URL</label>
+                                                <input type="text" name="seo_canonical_url" id="seo_canonical_url"
+                                                       value="<?= htmlspecialchars($activePage['seo']['canonical_url'] ?? '') ?>"
+                                                       class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                       style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
+                                                       placeholder="https://...">
+                                            </div>
+                                            <div>
+                                                <label for="seo_twitter_card" class="block text-xs font-medium text-stone-500 mb-1">Twitter Card</label>
+                                                <select name="seo_twitter_card" id="seo_twitter_card"
+                                                        class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition"
+                                                        style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)">
+                                                    <option value="summary_large_image" <?= ($activePage['seo']['twitter_card'] ?? '') === 'summary_large_image' ? 'selected' : '' ?>>Summary Large Image</option>
+                                                    <option value="summary" <?= ($activePage['seo']['twitter_card'] ?? '') === 'summary' ? 'selected' : '' ?>>Summary</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 flex items-center gap-2">
+                                            <input type="checkbox" name="seo_noindex" id="seo_noindex" value="1"
+                                                   <?= !empty($activePage['seo']['noindex']) ? 'checked' : '' ?>
+                                                   class="rounded">
+                                            <label for="seo_noindex" class="text-xs text-stone-500">Hide from search engines (noindex)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ═══════════ PAGE SECTIONS ═══════════ -->
                             <div class="rounded-2xl border p-4" style="background:var(--admin-card);border-color:var(--admin-card-border)">
                                 <div class="flex items-center justify-between mb-3">
                                     <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-500">
@@ -419,11 +530,11 @@
                                             $missing = !$def;
                                         ?>
                                             <div class="section-card rounded-xl border p-3" 
-                                                style="background:var(--admin-section-bg);border-color:<?= $missing ? '#f87171' : 'var(--admin-card-border)' ?>"
-                                                data-section-index="<?= $idx ?>" data-section-type="<?= htmlspecialchars($type) ?>">
+                                                 style="background:var(--admin-section-bg);border-color:<?= $missing ? '#f87171' : 'var(--admin-card-border)' ?>"
+                                                 data-section-index="<?= $idx ?>" data-section-type="<?= htmlspecialchars($type) ?>">
                                                 <div class="flex items-center justify-between mb-2">
                                                     <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                                        style="background:<?= $missing ? '#fef2f2' : 'var(--admin-accent-light)' ?>;color:<?= $missing ? '#dc2626' : 'var(--admin-accent-text)' ?>">
+                                                          style="background:<?= $missing ? '#fef2f2' : 'var(--admin-accent-light)' ?>;color:<?= $missing ? '#dc2626' : 'var(--admin-accent-text)' ?>">
                                                         <i class="fa-solid fa-layer-group mr-1"></i>
                                                         <?= $def ? htmlspecialchars($def['label']) : htmlspecialchars($type) . ' (missing)' ?>
                                                     </span>
@@ -448,13 +559,13 @@
                                                             </label>
                                                             <?php if ($isTextarea): ?>
                                                                 <textarea name="sections[<?= $idx ?>][<?= $field ?>]" rows="2"
-                                                                        class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                                                                        placeholder="Enter <?= htmlspecialchars(str_replace('_', ' ', $field)) ?>..."><?= htmlspecialchars($value) ?></textarea>
+                                                                          class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                                                                          placeholder="Enter <?= htmlspecialchars(str_replace('_', ' ', $field)) ?>..."><?= htmlspecialchars($value) ?></textarea>
                                                             <?php else: ?>
                                                                 <input type="text" name="sections[<?= $idx ?>][<?= $field ?>]"
-                                                                    value="<?= htmlspecialchars($value) ?>"
-                                                                    class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                                                                    placeholder="Enter <?= htmlspecialchars(str_replace('_', ' ', $field)) ?>...">
+                                                                       value="<?= htmlspecialchars($value) ?>"
+                                                                       class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                                                                       placeholder="Enter <?= htmlspecialchars(str_replace('_', ' ', $field)) ?>...">
                                                             <?php endif; ?>
                                                         </div>
                                                     <?php endforeach; ?>
@@ -480,6 +591,7 @@
                                 <input type="hidden" name="originalSlug" value="<?= htmlspecialchars($activeSlug) ?>">
                             <?php endif; ?>
 
+                            <!-- ═══════════ ACTION BAR ═══════════ -->
                             <div class="flex items-center justify-between gap-3 pt-2">
                                 <div class="flex items-center gap-2">
                                     <?php if ($activePage): ?>
@@ -533,6 +645,7 @@
                     </div>
                 </div>
                 
+                <!-- ═══════════ LIVE PREVIEW ═══════════ -->
                 <div class="w-full lg:w-[45%] flex flex-col border-l" style="background:var(--admin-preview-bg);border-color:var(--admin-sidebar-border)" id="previewPanel">
                     <div class="px-3 py-1.5 flex items-center justify-between text-xs text-stone-600 flex-shrink-0" style="background:var(--admin-preview-bar)">
                         <div class="flex items-center gap-2">
@@ -562,378 +675,31 @@
 </template>
 
 <cscript>
-    const allThemes = {
-        <?php foreach ($availableThemes as $key => $label): 
-            $t = include constant('APP_ROOT') . '/backend/phpue-extensions/matrix-cms/themes/' . $key . '.php';
-        ?>
-        '<?= $key ?>': {
-            name: '<?= addslashes($label) ?>',
-            sections: <?= json_encode(array_keys($t['sections'] ?? [])) ?>,
-            sectionLabels: {
-                <?php foreach ($t['sections'] as $type => $def): ?>
-                '<?= $type ?>': { label: '<?= addslashes($def['label']) ?>', fields: <?= json_encode($def['fields']) ?> },
-                <?php endforeach; ?>
-            }
-        },
-        <?php endforeach; ?>
-    };
-    
-    let lastSavedData = null;
-    let autoSaveTimer = null;
-    let currentPreviewSlug = null;
-    let currentPreviewRoute = null;
-
-    // ═══════════ ADMIN THEME ═══════════
-    function setAdminTheme(theme) {
-        document.documentElement.classList.remove('admin-theme-pine', 'admin-theme-midnight');
-        if (theme === 'pine') document.documentElement.classList.add('admin-theme-pine');
-        else if (theme === 'midnight') document.documentElement.classList.add('admin-theme-midnight');
-        localStorage.setItem('phpue-matrix-admin-theme', theme);
-    }
-
-    function loadAdminTheme() {
-        const saved = localStorage.getItem('phpue-matrix-admin-theme') || 'default';
-        const select = document.getElementById('adminThemeSelect');
-        if (select) select.value = saved;
-        setAdminTheme(saved);
-    }
-
-    // ═══════════ SECTION DROPDOWN ═══════════
-    function populateSectionDropdown() {
-        const dropdown = document.getElementById('sectionDropdown');
-        if (!dropdown) return;
-        
-        const currentTheme = document.getElementById('pageTheme').value;
-        const themeData = allThemes[currentTheme];
-        if (!themeData) return;
-        
-        dropdown.innerHTML = Object.entries(themeData.sectionLabels).map(([type, def]) => `
-            <button type="button" onclick="addSectionAt('${type}', getNextPosition()); document.getElementById('sectionDropdown').classList.add('hidden');"
-                    class="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2 transition">
-                <i class="fa-solid fa-plus text-xs text-amber-500"></i>
-                ${def.label}
-            </button>
-        `).join('');
-    }
-
-    function getNextPosition() {
-        const container = document.getElementById('sectionsContainer');
-        return container ? container.querySelectorAll('.section-card').length : 0;
-    }
-
-    // ═══════════ AUTO-SAVE + PREVIEW ═══════════
-    function triggerAutoSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(() => autoSaveDraft(), 1500); }
-
-    async function autoSaveDraft() {
-        const form = document.getElementById('cmsForm');
-        if (!form) return;
-        const formData = new FormData(form);
-        const slug = formData.get('pageSlug');
-        const route = formData.get('pageRoute') || formData.get('route') || document.getElementById('hiddenRoute').value;
-        if (!slug) return;
-        const sections = collectSections(formData);
-        if (sections.length === 0) return;
-        
-        const data = { action: 'autoSaveDraft', route, slug, theme: formData.get('pageTheme') || document.getElementById('hiddenTheme').value, title: formData.get('pageTitle') || 'Untitled', sections };
-        
-        const dot = document.getElementById('previewDot');
-        if (dot) { dot.className = 'h-1.5 w-1.5 rounded-full bg-blue-400'; dot.style.animation = 'pulse 1s infinite'; }
-        const label = document.getElementById('previewLabel');
-        if (label) label.textContent = 'Saving...';
-        
-        try {
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (res.ok) {
-                const result = await res.json();
-                if (result.success) {
-                    currentPreviewSlug = result.slug; currentPreviewRoute = result.route;
-                    updatePreview();
-                    if (dot) { dot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-400'; dot.style.animation = ''; }
-                    if (label) { label.textContent = 'Draft saved'; setTimeout(() => { if (label && label.textContent === 'Draft saved') label.textContent = 'Draft'; }, 2000); }
-                }
-            }
-        } catch (e) {
-            if (dot) { dot.className = 'h-1.5 w-1.5 rounded-full bg-red-400'; dot.style.animation = ''; }
-            if (label) label.textContent = 'Error';
-        }
-    }
-
-    function collectSections(formData) {
-        const indices = new Set();
-        for (const [k] of formData.entries()) { const m = k.match(/sections\[(\d+)\]/); if (m) indices.add(parseInt(m[1])); }
-        const sections = [];
-        Array.from(indices).sort((a,b)=>a-b).forEach(idx => {
-            const type = formData.get(`sections[${idx}][type]`); if (!type) return;
-            const section = { type, data: {} };
-            for (const [k, v] of formData.entries()) {
-                const fm = k.match(new RegExp(`sections\\[${idx}\\]\\[(\\w+)\\]`));
-                if (fm && fm[1] !== 'type') section.data[fm[1]] = v;
-            }
-            sections.push(section);
-        });
-        return sections;
-    }
-
-    async function updatePreview() {
-        const iframe = document.getElementById('previewFrame');
-        if (!iframe || !currentPreviewSlug || !currentPreviewRoute) return;
-        try {
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getPreview', route: currentPreviewRoute, slug: currentPreviewSlug }) });
-            if (res.ok) { const html = await res.text(); iframe.srcdoc = html; }
-        } catch (e) { console.error('Preview failed:', e); }
-    }
-
-    function refreshPreview() { updatePreview(); }
-
-    // ═══════════ FORM VALIDATION ═══════════
-    function showFieldError(fieldId, message) {
-        const field = document.getElementById(fieldId); if (!field) return;
-        const existing = field.parentElement.querySelector('.field-error'); if (existing) existing.remove();
-        const error = document.createElement('p');
-        error.className = 'field-error text-red-500 text-xs mt-1 flex items-center gap-1';
-        error.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>' + message;
-        field.parentElement.appendChild(error);
-        field.classList.add('border-red-400', 'bg-red-50'); field.classList.remove('border-stone-300');
-        const rm = function() { const e = field.parentElement.querySelector('.field-error'); if (e) e.remove(); field.classList.remove('border-red-400', 'bg-red-50'); field.classList.add('border-stone-300'); field.removeEventListener('input', rm); };
-        field.addEventListener('input', rm);
-    }
-
-    function clearAllFieldErrors() {
-        document.querySelectorAll('.field-error').forEach(e => e.remove());
-        document.querySelectorAll('.border-red-400').forEach(f => { f.classList.remove('border-red-400', 'bg-red-50'); f.classList.add('border-stone-300'); });
-        const fe = document.getElementById('formError'); if (fe) fe.remove();
-    }
-
-    function validateForm() {
-        clearAllFieldErrors();
-        let valid = true;
-        const title = document.getElementById('pageTitle');
-        if (!title || !title.value.trim()) { showFieldError('pageTitle', 'Page title is required'); valid = false; }
-        else if (title.value.trim().length < 2) { showFieldError('pageTitle', 'Title must be at least 2 characters'); valid = false; }
-        const slug = document.getElementById('pageSlug');
-        if (!slug || !slug.value.trim()) { showFieldError('pageSlug', 'Page slug is required'); valid = false; }
-        else if (!/^[a-z0-9\-]+$/.test(slug.value.trim())) { showFieldError('pageSlug', 'Only lowercase letters, numbers, hyphens'); valid = false; }
-        const route = document.getElementById('pageRoute');
-        if (route && !route.readOnly && !route.value.trim()) { showFieldError('pageRoute', 'Route is required'); valid = false; }
-        const container = document.getElementById('sectionsContainer');
-        if (container && container.querySelectorAll('.section-card').length === 0) {
-            const box = container.closest('.rounded-2xl');
-            if (box) { const e = document.createElement('p'); e.className = 'field-error text-red-500 text-xs mt-2 flex items-center gap-1'; e.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>Add at least one section'; e.id = 'formError'; box.appendChild(e); setTimeout(() => e.remove(), 5000); }
-            valid = false;
-        }
-        return { isValid: valid };
-    }
-
-    // ═══════════ THEME CHANGE ═══════════
-    function onThemeChange() {
-        const newTheme = document.getElementById('pageTheme').value;
-        document.getElementById('hiddenTheme').value = newTheme;
-        document.getElementById('topBarThemeName').textContent = newTheme;
-        const themeData = allThemes[newTheme]; if (!themeData) return;
-        document.querySelectorAll('.section-card').forEach(card => {
-            const st = card.getAttribute('data-section-type');
-            if (st && !themeData.sections.includes(st)) {
-                card.style.borderColor = '#f87171'; card.style.background = '#fef2f2';
-                const badge = card.querySelector('span.rounded-full'); if (badge) { badge.style.background = '#fef2f2'; badge.style.color = '#dc2626'; }
-                if (!card.querySelector('.theme-warning-msg')) {
-                    const w = document.createElement('div'); w.className = 'theme-warning-msg text-xs text-red-600 font-medium flex items-center gap-1 mb-2';
-                    w.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.';
-                    const hr = card.querySelector('.flex.items-center.justify-between'); if (hr) hr.after(w);
-                }
-            } else {
-                card.style.borderColor = ''; card.style.background = '';
-                const badge = card.querySelector('span.rounded-full'); if (badge) { badge.style.background = ''; badge.style.color = ''; }
-                const w = card.querySelector('.theme-warning-msg'); if (w) w.remove();
-            }
-        });
-        populateSectionDropdown();
-        triggerAutoSave();
-    }
-
-    // ═══════════ INSERT DROPDOWN ═══════════
-    function showInsertDropdown(event, position) {
-        event.stopPropagation();
-        const existing = document.querySelector('.insert-dropdown'); if (existing) existing.remove();
-        const currentTheme = document.getElementById('pageTheme').value;
-        const themeData = allThemes[currentTheme]; if (!themeData) return;
-        const dd = document.createElement('div');
-        dd.className = 'insert-dropdown fixed bg-white border border-stone-200 rounded-xl shadow-xl z-50 w-48 py-1';
-        dd.style.top = (event.target.getBoundingClientRect().bottom + 4) + 'px';
-        dd.style.left = (event.target.getBoundingClientRect().left - 80) + 'px';
-        dd.innerHTML = `<div class="px-3 py-1.5 text-xs font-semibold text-stone-400 uppercase tracking-wider border-b border-stone-100">Insert</div>${Object.entries(themeData.sectionLabels).map(([type, def]) => `<button type="button" onclick="addSectionAt('${type}',${position});document.querySelector('.insert-dropdown')?.remove();" class="w-full text-left px-3 py-2 text-xs hover:bg-amber-50 flex items-center gap-1.5 transition"><i class="fa-solid fa-plus text-amber-500"></i>${def.label}</button>`).join('')}`;
-        document.body.appendChild(dd);
-        setTimeout(() => { const h = function(e) { if (!dd.contains(e.target)) { dd.remove(); document.removeEventListener('click', h); } }; document.addEventListener('click', h); }, 10);
-    }
-
-    function addSectionAt(type, position) {
-        const container = document.getElementById('sectionsContainer');
-        const currentTheme = document.getElementById('pageTheme').value;
-        const themeData = allThemes[currentTheme];
-        const def = themeData?.sectionLabels?.[type]; if (!def) return;
-        const es = container.querySelector('.text-center'); if (es) es.remove();
-        const fieldsHtml = def.fields.map(f => { const ta = f === 'body' || f === 'subheading'; const l = f.replace(/_/g, ' '); return `<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta ? `<textarea name="sections[${position}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}..."></textarea>` : `<input type="text" name="sections[${position}][${f}]" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`; }).join('');
-        const card = document.createElement('div');
-        card.className = 'section-card rounded-xl border p-3'; card.setAttribute('data-section-type', type);
-        card.style.background = 'var(--admin-section-bg)'; card.style.borderColor = 'var(--admin-card-border)';
-        card.innerHTML = `<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:var(--admin-accent-light);color:var(--admin-accent-text)"><i class="fa-solid fa-layer-group mr-1"></i>${def.label}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div><div class="grid gap-2">${fieldsHtml}</div><input type="hidden" name="sections[${position}][type]" value="${type}">`;
-        const ips = container.querySelectorAll('.insert-point');
-        if (ips[position]) ips[position].after(card); else container.appendChild(card);
-        const nip = document.createElement('div'); nip.className = 'insert-point flex justify-center py-1'; nip.setAttribute('data-position', position + 1);
-        nip.innerHTML = `<button type="button" onclick="showInsertDropdown(event,${position+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;
-        card.after(nip);
-        reindexAll(); triggerAutoSave();
-    }
-
-    function removeSection(btn) {
-        const card = btn.closest('.section-card'); if (!card) return;
-        const ni = card.nextElementSibling;
-        card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; card.style.transition = 'all 0.2s ease';
-        setTimeout(() => {
-            card.remove(); if (ni && ni.classList.contains('insert-point')) ni.remove();
-            reindexAll();
-            const c = document.getElementById('sectionsContainer');
-            if (c && c.querySelectorAll('.section-card').length === 0) c.innerHTML = `<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`;
-            triggerAutoSave();
-        }, 200);
-    }
-
-    function reindexAll() {
-        const c = document.getElementById('sectionsContainer'); if (!c) return;
-        c.querySelectorAll('.section-card').forEach((card, i) => {
-            card.setAttribute('data-section-index', i);
-            card.querySelectorAll('input, textarea').forEach(inp => { const n = inp.getAttribute('name'); if (n) inp.setAttribute('name', n.replace(/sections\[\d+\]/, `sections[${i}]`)); });
-            const ht = card.querySelector('input[type="hidden"]'); if (ht) ht.setAttribute('name', `sections[${i}][type]`);
-        });
-        c.querySelectorAll('.insert-point').forEach((p, i) => { p.setAttribute('data-position', i); const b = p.querySelector('button'); if (b) b.setAttribute('onclick', `showInsertDropdown(event,${i})`); });
-    }
-
-    // ═══════════ FORM SUBMISSION ═══════════
-    async function submitForm(event, methodName) {
-        event.preventDefault();
-        const form = event.target;
-        const v = validateForm(); if (!v.isValid) { const fe = document.querySelector('.field-error'); if (fe) fe.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-        const submitBtn = document.getElementById('submitBtn'); const submitText = document.getElementById('submitText'); const submitIcon = document.getElementById('submitIcon');
-        const obc = submitBtn.innerHTML; submitBtn.disabled = true; submitText.textContent = 'Saving...'; submitIcon.className = 'fa-solid fa-spinner fa-spin';
-        try {
-            const formData = new FormData(form);
-            const data = { action: methodName, route: formData.get('pageRoute') || document.getElementById('hiddenRoute').value, slug: document.getElementById('pageSlug').value.trim(), theme: formData.get('pageTheme') || document.getElementById('hiddenTheme').value, title: document.getElementById('pageTitle').value.trim(), status: formData.get('pageStatus') || 'draft', originalSlug: formData.get('originalSlug') || null, sections: collectSections(formData) };
-            lastSavedData = { title: data.title, slug: data.slug, route: data.route, status: data.status, theme: data.theme, sections: data.sections };
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (res.ok) {
-                const result = await res.json();
-                document.getElementById('formFields').classList.add('hidden'); document.getElementById('formSuccess').classList.remove('hidden');
-                document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                if (result.slug) { currentPreviewSlug = result.slug; currentPreviewRoute = result.route; updatePreview(); const dot = document.getElementById('previewDot'); if (dot) { dot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-400'; dot.style.animation = ''; } const label = document.getElementById('previewLabel'); if (label) label.textContent = data.status === 'live' ? 'Live' : 'Draft'; }
-                document.getElementById('topBarThemeName').textContent = data.theme;
-                if (result.slug && !data.originalSlug) setTimeout(() => { window.location.href = '?route=' + encodeURIComponent(data.route) + '&edit=' + encodeURIComponent(result.slug); }, 1500);
-            } else { let et = 'Save failed.'; try { const ed = await res.json(); et = ed.error || et; } catch(e) {} throw new Error(et); }
-        } catch (error) {
-            submitBtn.innerHTML = obc; submitBtn.disabled = false;
-            const em = document.createElement('p'); em.className = 'text-red-500 text-xs text-center mt-2 bg-red-50 border border-red-200 rounded-lg py-2 px-4'; em.textContent = error.message || 'Save failed.'; em.id = 'formError';
-            form.appendChild(em); em.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => em.remove(), 5000);
-        }
-    }
-    
-    function resetForm() {
-        document.getElementById('formFields').classList.remove('hidden'); document.getElementById('formSuccess').classList.add('hidden'); clearAllFieldErrors();
-        if (lastSavedData) {
-            document.getElementById('pageTitle').value = lastSavedData.title || ''; document.getElementById('pageStatus').value = lastSavedData.status || 'draft';
-            if (lastSavedData.theme) { document.getElementById('pageTheme').value = lastSavedData.theme; document.getElementById('hiddenTheme').value = lastSavedData.theme; document.getElementById('topBarThemeName').textContent = lastSavedData.theme; }
-            const container = document.getElementById('sectionsContainer'); container.innerHTML = '';
-            if (!lastSavedData.sections || lastSavedData.sections.length === 0) {
-                container.innerHTML = `<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`;
-            } else {
-                const ct = lastSavedData.theme || 'default'; const td = allThemes[ct];
-                const ti = document.createElement('div'); ti.className = 'insert-point flex justify-center py-1'; ti.setAttribute('data-position', 0); ti.innerHTML = `<button type="button" onclick="showInsertDropdown(event,0)" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`; container.appendChild(ti);
-                lastSavedData.sections.forEach((section, idx) => {
-                    const def = td?.sectionLabels?.[section.type]; const missing = !def;
-                    const fh = def ? def.fields.map(f => { const ta = f === 'body' || f === 'subheading'; const l = f.replace(/_/g, ' '); const v = (section.data && section.data[f]) ? section.data[f] : ''; return `<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta ? `<textarea name="sections[${idx}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">${escapeHtml(v)}</textarea>` : `<input type="text" name="sections[${idx}][${f}]" value="${escapeHtml(v)}" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`; }).join('') : '';
-                    const card = document.createElement('div'); card.className = 'section-card rounded-xl border p-3'; card.setAttribute('data-section-index', idx); card.setAttribute('data-section-type', section.type);
-                    card.style.background = 'var(--admin-section-bg)'; card.style.borderColor = missing ? '#f87171' : 'var(--admin-card-border)';
-                    card.innerHTML = `<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:${missing ? '#fef2f2' : 'var(--admin-accent-light)'};color:${missing ? '#dc2626' : 'var(--admin-accent-text)'}"><i class="fa-solid fa-layer-group mr-1"></i>${def ? def.label : section.type + ' (missing)'}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div>${missing ? '<div class="text-xs text-red-600 font-medium flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.</div>' : ''}${def ? `<div class="grid gap-2">${fh}</div>` : ''}<input type="hidden" name="sections[${idx}][type]" value="${section.type}">`;
-                    container.appendChild(card);
-                    const ip = document.createElement('div'); ip.className = 'insert-point flex justify-center py-1'; ip.setAttribute('data-position', idx + 1); ip.innerHTML = `<button type="button" onclick="showInsertDropdown(event,${idx+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`; container.appendChild(ip);
-                });
-            }
-        }
-        const sb = document.getElementById('submitBtn'); sb.disabled = false; sb.innerHTML = `<span id="submitText"><i class="fa-solid fa-floppy-disk mr-1"></i>Update Page</span><i id="submitIcon" class="fa-solid fa-paper-plane"></i>`;
-        document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth' }); setTimeout(() => updatePreview(), 300);
-        populateSectionDropdown();
-    }
-
-    // ═══════════ DUPLICATE PAGE ═══════════
-    async function duplicatePage() {
-        const fd = new FormData(document.getElementById('cmsForm'));
-        const os = fd.get('pageSlug'); const ot = fd.get('pageTitle');
-        if (!os || !ot) { alert('Fill in title and slug first.'); return; }
-        const ns = os + '-copy-' + Date.now().toString(36); const nt = ot + ' (Copy)';
-        const data = { action: 'saveCmsPage', route: fd.get('pageRoute') || document.getElementById('hiddenRoute').value, slug: ns, theme: fd.get('pageTheme') || document.getElementById('hiddenTheme').value, title: nt, status: 'draft', sections: collectSections(fd) };
-        try {
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (res.ok) { const r = await res.json(); if (r.success) { const btn = document.querySelector('[onclick="duplicatePage()"]'); btn.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> Duplicated!'; btn.classList.add('text-emerald-600', 'border-emerald-300'); setTimeout(() => { window.location.href = '?route=' + encodeURIComponent(data.route) + '&edit=' + encodeURIComponent(ns); }, 600); } }
-        } catch (e) { alert('Duplicate failed.'); }
-    }
-
-    // ═══════════ SAVE AS TEMPLATE ═══════════
-    async function saveAsTemplate() {
-        const fd = new FormData(document.getElementById('cmsForm'));
-        const title = fd.get('pageTitle'); if (!title) { alert('Enter a page title first.'); return; }
-        const tn = prompt('Template name:', title + ' Template'); if (!tn) return;
-        const ts = 'tpl-' + tn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const data = { action: 'saveCmsPage', route: 'templates', slug: ts, theme: fd.get('pageTheme') || document.getElementById('hiddenTheme').value, title: tn, status: 'draft', sections: collectSections(fd) };
-        try {
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (res.ok) { const btn = document.querySelector('[onclick="saveAsTemplate()"]'); const oh = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> Saved!'; btn.classList.add('text-emerald-600', 'border-emerald-300'); setTimeout(() => { btn.innerHTML = oh; btn.classList.remove('text-emerald-600', 'border-emerald-300'); }, 2000); }
-        } catch (e) { alert('Save template failed.'); }
-    }
-
-    // ═══════════ DELETE PAGE ═══════════
-    async function deletePage(slug, title) {
-        if (!confirm(`Delete "${title}"?\n\nThis cannot be undone.`)) return;
-        try {
-            const route = '<?= htmlspecialchars($activeRoute) ?>';
-            const res = await fetch('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'deleteCmsPage', route, slug }) });
-            if (res.ok) { const r = await res.json(); if (r.success) { if ('<?= htmlspecialchars($activeSlug ?? '') ?>' === slug) window.location.href = '?route=' + encodeURIComponent(route); else window.location.reload(); } }
-        } catch (e) { alert('Delete failed.'); }
-    }
-
-    function escapeHtml(text) { if (!text) return ''; return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
-
-    // ═══════════ INIT ═══════════
-    document.addEventListener('DOMContentLoaded', function() {
-        loadAdminTheme();
-        
-        // Section dropdown toggle
-        const addBtn = document.getElementById('addSectionBtn');
-        const dropdown = document.getElementById('sectionDropdown');
-        if (addBtn && dropdown) {
-            addBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                populateSectionDropdown();
-                dropdown.classList.toggle('hidden');
-            });
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target) && e.target !== addBtn) {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-        
-        // Auto-save triggers
-        const form = document.getElementById('cmsForm');
-        if (form) {
-            form.addEventListener('input', function(e) { if (e.target.closest('#sectionsContainer') || e.target.closest('#formFields')) triggerAutoSave(); });
-            const obs = new MutationObserver(function() { triggerAutoSave(); });
-            const c = document.getElementById('sectionsContainer'); if (c) obs.observe(c, { childList: true, subtree: true });
-        }
-        
-        // Initial preview
-        <?php if ($activeSlug): ?>
-        currentPreviewSlug = '<?= htmlspecialchars($activeSlug) ?>'; currentPreviewRoute = '<?= htmlspecialchars($activeRoute) ?>';
-        setTimeout(() => updatePreview(), 600);
-        <?php endif; ?>
-        
-        // Populate section dropdown on load
-        populateSectionDropdown();
-    });
+    const allThemes={<?php foreach ($availableThemes as $key => $label): $t=include __DIR__.'/backend/phpue-extensions/matrix-cms/themes/'.$key.'.php';?>'<?=$key?>':{name:'<?=addslashes($label)?>',sections:<?=json_encode(array_keys($t['sections']??[]))?>,sectionLabels:{<?php foreach($t['sections'] as $type=>$def):?>'<?=$type?>':{label:'<?=addslashes($def['label'])?>',fields:<?=json_encode($def['fields'])?>},<?php endforeach;?>}},<?php endforeach;?>};
+    let lastSavedData=null,autoSaveTimer=null,currentPreviewSlug=null,currentPreviewRoute=null;
+    function setAdminTheme(t){document.documentElement.classList.remove('admin-theme-pine','admin-theme-midnight');if(t==='pine')document.documentElement.classList.add('admin-theme-pine');else if(t==='midnight')document.documentElement.classList.add('admin-theme-midnight');localStorage.setItem('phpue-matrix-admin-theme',t)}
+    function loadAdminTheme(){const t=localStorage.getItem('phpue-matrix-admin-theme')||'default';const s=document.getElementById('adminThemeSelect');if(s)s.value=t;setAdminTheme(t)}
+    function populateSectionDropdown(){const d=document.getElementById('sectionDropdown');if(!d)return;const t=document.getElementById('pageTheme').value;const td=allThemes[t];if(!td)return;d.innerHTML=Object.entries(td.sectionLabels).map(([t,def])=>`<button type="button" onclick="addSectionAt('${t}',getNextPosition());document.getElementById('sectionDropdown').classList.add('hidden');" class="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2 transition"><i class="fa-solid fa-plus text-xs text-amber-500"></i>${def.label}</button>`).join('')}
+    function getNextPosition(){const c=document.getElementById('sectionsContainer');return c?c.querySelectorAll('.section-card').length:0}
+    function triggerAutoSave(){clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>autoSaveDraft(),1500)}
+    async function autoSaveDraft(){const f=document.getElementById('cmsForm');if(!f)return;const fd=new FormData(f);const slug=fd.get('pageSlug');const route=fd.get('pageRoute')||fd.get('route')||document.getElementById('hiddenRoute').value;if(!slug)return;const s=collectSections(fd);if(s.length===0)return;const data={action:'autoSaveDraft',route,slug,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:fd.get('pageTitle')||'Untitled',sections:s,seo_meta_title:fd.get('seo_meta_title')||'',seo_meta_description:fd.get('seo_meta_description')||'',seo_meta_keywords:fd.get('seo_meta_keywords')||'',seo_og_title:fd.get('seo_og_title')||'',seo_og_description:fd.get('seo_og_description')||'',seo_og_image:fd.get('seo_og_image')||'',seo_og_type:fd.get('seo_og_type')||'article',seo_twitter_card:fd.get('seo_twitter_card')||'summary_large_image',seo_canonical_url:fd.get('seo_canonical_url')||'',seo_noindex:fd.get('seo_noindex')||''};const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-blue-400';dot.style.animation='pulse 1s infinite'}const label=document.getElementById('previewLabel');if(label)label.textContent='Saving...';try{const r=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(r.ok){const j=await r.json();if(j.success){currentPreviewSlug=j.slug;currentPreviewRoute=j.route;updatePreview();if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}if(label){label.textContent='Draft saved';setTimeout(()=>{if(label&&label.textContent==='Draft saved')label.textContent='Draft'},2000)}}}}catch(e){if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-red-400';dot.style.animation=''}if(label)label.textContent='Error'}}
+    function collectSections(fd){const idx=new Set();for(const[k]of fd.entries()){const m=k.match(/sections\[(\d+)\]/);if(m)idx.add(parseInt(m[1]))}const s=[];Array.from(idx).sort((a,b)=>a-b).forEach(i=>{const t=fd.get(`sections[${i}][type]`);if(!t)return;const sec={type:t,data:{}};for(const[k,v]of fd.entries()){const fm=k.match(new RegExp(`sections\\[${i}\\]\\[(\\w+)\\]`));if(fm&&fm[1]!=='type')sec.data[fm[1]]=v}s.push(sec)});return s}
+    function collectSeoData(fd){return{seo_meta_title:fd.get('seo_meta_title')||'',seo_meta_description:fd.get('seo_meta_description')||'',seo_meta_keywords:fd.get('seo_meta_keywords')||'',seo_og_title:fd.get('seo_og_title')||'',seo_og_description:fd.get('seo_og_description')||'',seo_og_image:fd.get('seo_og_image')||'',seo_og_type:fd.get('seo_og_type')||'article',seo_twitter_card:fd.get('seo_twitter_card')||'summary_large_image',seo_canonical_url:fd.get('seo_canonical_url')||'',seo_noindex:fd.get('seo_noindex')||''}}
+    async function updatePreview(){const ifr=document.getElementById('previewFrame');if(!ifr||!currentPreviewSlug||!currentPreviewRoute)return;try{const r=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'getPreview',route:currentPreviewRoute,slug:currentPreviewSlug})});if(r.ok){const h=await r.text();ifr.srcdoc=h}}catch(e){console.error('Preview failed:',e)}}
+    function refreshPreview(){updatePreview()}
+    function showFieldError(id,msg){const f=document.getElementById(id);if(!f)return;const ex=f.parentElement.querySelector('.field-error');if(ex)ex.remove();const e=document.createElement('p');e.className='field-error text-red-500 text-xs mt-1 flex items-center gap-1';e.innerHTML='<i class="fa-solid fa-circle-exclamation"></i>'+msg;f.parentElement.appendChild(e);f.classList.add('border-red-400','bg-red-50');f.classList.remove('border-stone-300');const rm=function(){const er=f.parentElement.querySelector('.field-error');if(er)er.remove();f.classList.remove('border-red-400','bg-red-50');f.classList.add('border-stone-300');f.removeEventListener('input',rm)};f.addEventListener('input',rm)}
+    function clearAllFieldErrors(){document.querySelectorAll('.field-error').forEach(e=>e.remove());document.querySelectorAll('.border-red-400').forEach(f=>{f.classList.remove('border-red-400','bg-red-50');f.classList.add('border-stone-300')});const fe=document.getElementById('formError');if(fe)fe.remove()}
+    function validateForm(){clearAllFieldErrors();let v=true;const t=document.getElementById('pageTitle');if(!t||!t.value.trim()){showFieldError('pageTitle','Page title is required');v=false}else if(t.value.trim().length<2){showFieldError('pageTitle','Title must be at least 2 characters');v=false}const s=document.getElementById('pageSlug');if(!s||!s.value.trim()){showFieldError('pageSlug','Page slug is required');v=false}else if(!/^[a-z0-9\-]+$/.test(s.value.trim())){showFieldError('pageSlug','Only lowercase letters, numbers, hyphens');v=false}const r=document.getElementById('pageRoute');if(r&&!r.readOnly&&!r.value.trim()){showFieldError('pageRoute','Route is required');v=false}const c=document.getElementById('sectionsContainer');if(c&&c.querySelectorAll('.section-card').length===0){const b=c.closest('.rounded-2xl');if(b){const e=document.createElement('p');e.className='field-error text-red-500 text-xs mt-2 flex items-center gap-1';e.innerHTML='<i class="fa-solid fa-circle-exclamation"></i>Add at least one section';e.id='formError';b.appendChild(e);setTimeout(()=>e.remove(),5000)}v=false}return{isValid:v}}
+    function onThemeChange(){const nt=document.getElementById('pageTheme').value;document.getElementById('hiddenTheme').value=nt;document.getElementById('topBarThemeName').textContent=nt;const td=allThemes[nt];if(!td)return;document.querySelectorAll('.section-card').forEach(c=>{const st=c.getAttribute('data-section-type');if(st&&!td.sections.includes(st)){c.style.borderColor='#f87171';c.style.background='#fef2f2';const b=c.querySelector('span.rounded-full');if(b){b.style.background='#fef2f2';b.style.color='#dc2626'}if(!c.querySelector('.theme-warning-msg')){const w=document.createElement('div');w.className='theme-warning-msg text-xs text-red-600 font-medium flex items-center gap-1 mb-2';w.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.';const hr=c.querySelector('.flex.items-center.justify-between');if(hr)hr.after(w)}}else{c.style.borderColor='';c.style.background='';const b=c.querySelector('span.rounded-full');if(b){b.style.background='';b.style.color=''}const w=c.querySelector('.theme-warning-msg');if(w)w.remove()}});populateSectionDropdown();triggerAutoSave()}
+    function showInsertDropdown(e,p){e.stopPropagation();const ex=document.querySelector('.insert-dropdown');if(ex)ex.remove();const ct=document.getElementById('pageTheme').value;const td=allThemes[ct];if(!td)return;const dd=document.createElement('div');dd.className='insert-dropdown fixed bg-white border border-stone-200 rounded-xl shadow-xl z-50 w-48 py-1';dd.style.top=(e.target.getBoundingClientRect().bottom+4)+'px';dd.style.left=(e.target.getBoundingClientRect().left-80)+'px';dd.innerHTML=`<div class="px-3 py-1.5 text-xs font-semibold text-stone-400 uppercase tracking-wider border-b border-stone-100">Insert</div>${Object.entries(td.sectionLabels).map(([t,def])=>`<button type="button" onclick="addSectionAt('${t}',${p});document.querySelector('.insert-dropdown')?.remove();" class="w-full text-left px-3 py-2 text-xs hover:bg-amber-50 flex items-center gap-1.5 transition"><i class="fa-solid fa-plus text-amber-500"></i>${def.label}</button>`).join('')}`;document.body.appendChild(dd);setTimeout(()=>{const h=function(ev){if(!dd.contains(ev.target)){dd.remove();document.removeEventListener('click',h)}};document.addEventListener('click',h)},10)}
+    function addSectionAt(type,pos){const c=document.getElementById('sectionsContainer');const ct=document.getElementById('pageTheme').value;const td=allThemes[ct];const def=td?.sectionLabels?.[type];if(!def)return;const es=c.querySelector('.text-center');if(es)es.remove();const fh=def.fields.map(f=>{const ta=f==='body'||f==='subheading';const l=f.replace(/_/g,' ');return`<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta?`<textarea name="sections[${pos}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}..."></textarea>`:`<input type="text" name="sections[${pos}][${f}]" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`}).join('');const card=document.createElement('div');card.className='section-card rounded-xl border p-3';card.setAttribute('data-section-type',type);card.style.background='var(--admin-section-bg)';card.style.borderColor='var(--admin-card-border)';card.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:var(--admin-accent-light);color:var(--admin-accent-text)"><i class="fa-solid fa-layer-group mr-1"></i>${def.label}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div><div class="grid gap-2">${fh}</div><input type="hidden" name="sections[${pos}][type]" value="${type}">`;const ips=c.querySelectorAll('.insert-point');if(ips[pos])ips[pos].after(card);else c.appendChild(card);const nip=document.createElement('div');nip.className='insert-point flex justify-center py-1';nip.setAttribute('data-position',pos+1);nip.innerHTML=`<button type="button" onclick="showInsertDropdown(event,${pos+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;card.after(nip);reindexAll();triggerAutoSave()}
+    function removeSection(btn){const card=btn.closest('.section-card');if(!card)return;const ni=card.nextElementSibling;card.style.opacity='0';card.style.transform='scale(0.95)';card.style.transition='all 0.2s ease';setTimeout(()=>{card.remove();if(ni&&ni.classList.contains('insert-point'))ni.remove();reindexAll();const c=document.getElementById('sectionsContainer');if(c&&c.querySelectorAll('.section-card').length===0)c.innerHTML=`<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`;triggerAutoSave()},200)}
+    function reindexAll(){const c=document.getElementById('sectionsContainer');if(!c)return;c.querySelectorAll('.section-card').forEach((card,i)=>{card.setAttribute('data-section-index',i);card.querySelectorAll('input, textarea').forEach(inp=>{const n=inp.getAttribute('name');if(n)inp.setAttribute('name',n.replace(/sections\[\d+\]/,`sections[${i}]`))});const ht=card.querySelector('input[type="hidden"]');if(ht)ht.setAttribute('name',`sections[${i}][type]`)});c.querySelectorAll('.insert-point').forEach((p,i)=>{p.setAttribute('data-position',i);const b=p.querySelector('button');if(b)b.setAttribute('onclick',`showInsertDropdown(event,${i})`)})}
+    async function submitForm(event,methodName){event.preventDefault();const form=event.target;const v=validateForm();if(!v.isValid){const fe=document.querySelector('.field-error');if(fe)fe.scrollIntoView({behavior:'smooth',block:'center'});return}const submitBtn=document.getElementById('submitBtn');const submitText=document.getElementById('submitText');const submitIcon=document.getElementById('submitIcon');const obc=submitBtn.innerHTML;submitBtn.disabled=true;submitText.textContent='Saving...';submitIcon.className='fa-solid fa-spinner fa-spin';try{const fd=new FormData(form);const seoData=collectSeoData(fd);const data={action:methodName,route:fd.get('pageRoute')||document.getElementById('hiddenRoute').value,slug:document.getElementById('pageSlug').value.trim(),theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:document.getElementById('pageTitle').value.trim(),status:fd.get('pageStatus')||'draft',originalSlug:fd.get('originalSlug')||null,sections:collectSections(fd),...seoData};lastSavedData={title:data.title,slug:data.slug,route:data.route,status:data.status,theme:data.theme,sections:data.sections,seo:seoData};const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const result=await res.json();document.getElementById('formFields').classList.add('hidden');document.getElementById('formSuccess').classList.remove('hidden');document.getElementById('formSuccess').scrollIntoView({behavior:'smooth',block:'center'});if(result.slug){currentPreviewSlug=result.slug;currentPreviewRoute=result.route;updatePreview();const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}const label=document.getElementById('previewLabel');if(label)label.textContent=data.status==='live'?'Live':'Draft'}document.getElementById('topBarThemeName').textContent=data.theme;if(result.slug&&!data.originalSlug)setTimeout(()=>{window.location.href='?route='+encodeURIComponent(data.route)+'&edit='+encodeURIComponent(result.slug)},1500)}else{let et='Save failed.';try{const ed=await res.json();et=ed.error||et}catch(e){}throw new Error(et)}}catch(error){submitBtn.innerHTML=obc;submitBtn.disabled=false;const em=document.createElement('p');em.className='text-red-500 text-xs text-center mt-2 bg-red-50 border border-red-200 rounded-lg py-2 px-4';em.textContent=error.message||'Save failed.';em.id='formError';form.appendChild(em);em.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>em.remove(),5000)}}
+    function resetForm(){document.getElementById('formFields').classList.remove('hidden');document.getElementById('formSuccess').classList.add('hidden');clearAllFieldErrors();if(lastSavedData){document.getElementById('pageTitle').value=lastSavedData.title||'';document.getElementById('pageStatus').value=lastSavedData.status||'draft';if(lastSavedData.theme){document.getElementById('pageTheme').value=lastSavedData.theme;document.getElementById('hiddenTheme').value=lastSavedData.theme;document.getElementById('topBarThemeName').textContent=lastSavedData.theme}if(lastSavedData.seo){const s=lastSavedData.seo;document.getElementById('seo_meta_title').value=s.seo_meta_title||'';document.getElementById('seo_meta_description').value=s.seo_meta_description||'';document.getElementById('seo_meta_keywords').value=s.seo_meta_keywords||'';document.getElementById('seo_og_title').value=s.seo_og_title||'';document.getElementById('seo_og_description').value=s.seo_og_description||'';document.getElementById('seo_og_image').value=s.seo_og_image||'';if(s.seo_og_type&&document.getElementById('seo_og_type'))document.getElementById('seo_og_type').value=s.seo_og_type;if(s.seo_twitter_card)document.getElementById('seo_twitter_card').value=s.seo_twitter_card;document.getElementById('seo_canonical_url').value=s.seo_canonical_url||'';document.getElementById('seo_noindex').checked=!!s.seo_noindex;const sc=document.getElementById('seoDescCount');if(sc)sc.textContent=(s.seo_meta_description||'').length;const sp=document.getElementById('seoPanel');if(sp&&Object.values(s).some(v=>v))sp.classList.remove('hidden')}const c=document.getElementById('sectionsContainer');c.innerHTML='';if(!lastSavedData.sections||lastSavedData.sections.length===0){c.innerHTML=`<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`}else{const ct=lastSavedData.theme||'default';const td=allThemes[ct];const ti=document.createElement('div');ti.className='insert-point flex justify-center py-1';ti.setAttribute('data-position',0);ti.innerHTML=`<button type="button" onclick="showInsertDropdown(event,0)" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ti);lastSavedData.sections.forEach((section,idx)=>{const def=td?.sectionLabels?.[section.type];const missing=!def;const fh=def?def.fields.map(f=>{const ta=f==='body'||f==='subheading';const l=f.replace(/_/g,' ');const v=(section.data&&section.data[f])?section.data[f]:'';return`<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta?`<textarea name="sections[${idx}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">${escapeHtml(v)}</textarea>`:`<input type="text" name="sections[${idx}][${f}]" value="${escapeHtml(v)}" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`}).join(''):'';const card=document.createElement('div');card.className='section-card rounded-xl border p-3';card.setAttribute('data-section-index',idx);card.setAttribute('data-section-type',section.type);card.style.background='var(--admin-section-bg)';card.style.borderColor=missing?'#f87171':'var(--admin-card-border)';card.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:${missing?'#fef2f2':'var(--admin-accent-light)'};color:${missing?'#dc2626':'var(--admin-accent-text)'}"><i class="fa-solid fa-layer-group mr-1"></i>${def?def.label:section.type+' (missing)'}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div>${missing?'<div class="text-xs text-red-600 font-medium flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.</div>':''}${def?`<div class="grid gap-2">${fh}</div>`:''}<input type="hidden" name="sections[${idx}][type]" value="${section.type}">`;c.appendChild(card);const ip=document.createElement('div');ip.className='insert-point flex justify-center py-1';ip.setAttribute('data-position',idx+1);ip.innerHTML=`<button type="button" onclick="showInsertDropdown(event,${idx+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ip)})}}const sb=document.getElementById('submitBtn');sb.disabled=false;sb.innerHTML=`<span id="submitText"><i class="fa-solid fa-floppy-disk mr-1"></i>Update Page</span><i id="submitIcon" class="fa-solid fa-paper-plane"></i>`;document.getElementById('formSuccess').scrollIntoView({behavior:'smooth'});setTimeout(()=>updatePreview(),300);populateSectionDropdown()}
+    async function duplicatePage(){const fd=new FormData(document.getElementById('cmsForm'));const os=fd.get('pageSlug');const ot=fd.get('pageTitle');if(!os||!ot){alert('Fill in title and slug first.');return}const ns=os+'-copy-'+Date.now().toString(36);const nt=ot+' (Copy)';const seoData=collectSeoData(fd);const data={action:'saveCmsPage',route:fd.get('pageRoute')||document.getElementById('hiddenRoute').value,slug:ns,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:nt,status:'draft',sections:collectSections(fd),...seoData};try{const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const r=await res.json();if(r.success){const btn=document.querySelector('[onclick="duplicatePage()"]');btn.innerHTML='<i class="fa-solid fa-check text-emerald-500"></i> Duplicated!';btn.classList.add('text-emerald-600','border-emerald-300');setTimeout(()=>{window.location.href='?route='+encodeURIComponent(data.route)+'&edit='+encodeURIComponent(ns)},600)}}}catch(e){alert('Duplicate failed.')}}
+    async function saveAsTemplate(){const fd=new FormData(document.getElementById('cmsForm'));const title=fd.get('pageTitle');if(!title){alert('Enter a page title first.');return}const tn=prompt('Template name:',title+' Template');if(!tn)return;const ts='tpl-'+tn.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const seoData=collectSeoData(fd);const data={action:'saveCmsPage',route:'templates',slug:ts,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:tn,status:'draft',sections:collectSections(fd),...seoData};try{const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const btn=document.querySelector('[onclick="saveAsTemplate()"]');const oh=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-check text-emerald-500"></i> Saved!';btn.classList.add('text-emerald-600','border-emerald-300');setTimeout(()=>{btn.innerHTML=oh;btn.classList.remove('text-emerald-600','border-emerald-300')},2000)}}catch(e){alert('Save template failed.')}}
+    async function deletePage(slug,title){if(!confirm(`Delete "${title}"?\n\nThis cannot be undone.`))return;try{const route='<?=htmlspecialchars($activeRoute)?>';const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteCmsPage',route,slug})});if(res.ok){const r=await res.json();if(r.success){if('<?=htmlspecialchars($activeSlug??'')?>'===slug)window.location.href='?route='+encodeURIComponent(route);else window.location.reload()}}}catch(e){alert('Delete failed.')}}
+    function escapeHtml(text){if(!text)return'';return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+    document.addEventListener('DOMContentLoaded',function(){loadAdminTheme();const seoDesc=document.getElementById('seo_meta_description');const seoCount=document.getElementById('seoDescCount');if(seoDesc&&seoCount){seoCount.textContent=seoDesc.value.length;seoDesc.addEventListener('input',()=>{seoCount.textContent=seoDesc.value.length;if(seoDesc.value.length>160){seoCount.classList.add('text-red-500')}else{seoCount.classList.remove('text-red-500')}})}const addBtn=document.getElementById('addSectionBtn');const dropdown=document.getElementById('sectionDropdown');if(addBtn&&dropdown){addBtn.addEventListener('click',function(e){e.stopPropagation();populateSectionDropdown();dropdown.classList.toggle('hidden')});document.addEventListener('click',function(e){if(!dropdown.contains(e.target)&&e.target!==addBtn){dropdown.classList.add('hidden')}})}const form=document.getElementById('cmsForm');if(form){form.addEventListener('input',function(e){if(e.target.closest('#sectionsContainer')||e.target.closest('#formFields'))triggerAutoSave()});const obs=new MutationObserver(function(){triggerAutoSave()});const c=document.getElementById('sectionsContainer');if(c)obs.observe(c,{childList:true,subtree:true})}<?php if($activeSlug):?>currentPreviewSlug='<?=htmlspecialchars($activeSlug)?>';currentPreviewRoute='<?=htmlspecialchars($activeRoute)?>';setTimeout(()=>updatePreview(),600);<?php endif;?>populateSectionDropdown()});
 </cscript>
