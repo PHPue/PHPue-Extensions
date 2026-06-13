@@ -1,6 +1,6 @@
 <?php 
     /* Author(s): Edward Patch */
-    
+
     namespace PHPueExt;
 
     if (defined('PHPUE_VERSION') && version_compare(PHPUE_VERSION, '0.0.2', '>=')) {
@@ -169,6 +169,28 @@
                 
                 // Fallback to OG image (which itself has fallbacks)
                 return self::getPageOgImage($route, $slug);
+            }
+
+            // ═══════════════════════════════════════════
+            // FEATURED IMAGE
+            // ═══════════════════════════════════════════
+
+            public static function getPageFeaturedImage(string $route, string $slug): string
+            {
+                $seo = self::getPageSeo($route, $slug);
+                
+                // 1. Dedicated featured image field
+                if (!empty($seo['featured_image'])) {
+                    return $seo['featured_image'];
+                }
+                
+                // 2. OG image (user-set or fallback)
+                $ogImage = self::getPageOgImage($route, $slug);
+                if (!empty($ogImage)) {
+                    return $ogImage;
+                }
+                
+                return '';
             }
 
             public static function getPageKeywords(string $route, string $slug): string
