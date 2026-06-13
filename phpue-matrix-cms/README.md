@@ -1,12 +1,14 @@
-# PHPue Matrix — Overview
+# PHPue Matrix — Database-Free CMS
 
-PHPue Matrix is a flat-file CMS extension for the PHPue framework. It stores content as PHP arrays, renders pages through theme closures, and requires zero database queries.
+PHPue Matrix is a flat-file CMS extension for the PHPue framework. It stores content as PHP arrays, renders pages through theme closures, and requires zero database queries. Sub-millisecond page loads via OpCache, no build step, no migrations.
+
+![Homepage](git-assets/imgs/index.png)
 
 ---
 
 ## What It Does
 
-PHPue Matrix handles **content rendering** — the body of your pages. It does not manage `<head>` metadata (titles, descriptions, OpenGraph tags). That's handled separately by your existing SEO setup in `App.pvue`.
+PHPue Matrix handles **content rendering** — the body of your pages. SEO metadata is managed separately via `App.pvue`.
 
 | Responsibility | Handled By |
 |---------------|-------------|
@@ -17,7 +19,44 @@ PHPue Matrix handles **content rendering** — the body of your pages. It does n
 | Route listing | `listRoutes()` → scans all category folders |
 | Page deletion | `deletePage()` → removes `.php` file |
 | Shortcode parsing | `parseShortcodes()` → `[[token]]` and `[[namespace.key]]` |
-| SEO metadata | Your existing setup (`App.pvue`, MetaControl, or manual) |
+| SEO metadata | `App.pvue` dynamic header |
+
+---
+
+## Blog Frontend
+
+![Blog Listing](git-assets/imgs/Blogs.png)
+
+The blog view handles both single posts and the listing page. With a slug, it calls `getPage()` and outputs rendered HTML. Without one, it calls `listPages()` and displays a grid of live posts.
+
+![Blog Listing with Featured Images](git-assets/imgs/Blogs-With-Img.png)
+
+Featured images are loaded via `getPageFeaturedImage()` with automatic fallback to OG image or hero background. Posts without images get a gradient placeholder card.
+
+---
+
+## CMS Admin Portal
+
+![CMS Portal](git-assets/imgs/phpue-matrix-portal.png)
+
+The admin interface provides full content management:
+
+- **Route selector** — switch between content categories (blogs, pages, templates)
+- **Page CRUD** — create, edit, duplicate, and delete pages
+- **Live preview** — iframe updates on every auto-save
+- **Template system** — save pages as reusable templates, create new pages from templates
+
+![SEO Editing](git-assets/imgs/CMS-SEO-Editing.png)
+
+Built-in SEO panel with meta title, description, keywords, OpenGraph tags, Twitter card type, canonical URL, and noindex control. Auto-saves preserve SEO data between edits.
+
+![Section Management](git-assets/imgs/CMS-Sections.png)
+
+Dynamic section editor with 15+ section types per theme. Add sections via dropdown or insert-point buttons between existing sections. Theme-aware validation warns when sections don't exist in the selected theme.
+
+![Template System](git-assets/imgs/CMS-Templates.png)
+
+Save any page as a reusable template, then create new pages from templates with a single click. Templates live in `pages/templates/` and appear in the sidebar dropdown.
 
 ---
 
@@ -32,7 +71,7 @@ $html = \PHPueExt\PHPueMatrix::getPage('blogs', 'my-post');
 // Returns rendered HTML — drop into any .pvue template
 ```
 
-### `createPage(string $route, string $slug, string $theme, array $sections, string $title, string $status): bool`
+### `createPage(string $route, string $slug, string $theme, array $sections, string $title, string $status, array $seo): bool`
 
 Serializes page data with `var_export()` and writes it to disk as a `.php` file.
 
@@ -61,6 +100,20 @@ Scans the pages directory for all route folders and returns their names and page
 
 Removes a page file from disk.
 
+### SEO Methods
+
+```php
+getPageSeo($route, $slug)           // Full SEO array
+getPageTitle($route, $slug)         // Meta title with fallback
+getPageDescription($route, $slug)   // Meta description with auto-extraction
+getPageOgImage($route, $slug)       // OG image with hero fallback
+getPageTwitterImage($route, $slug)  // Twitter card image
+getPageFeaturedImage($route, $slug) // Featured image for listings
+getPageKeywords($route, $slug)      // Meta keywords
+getPageCanonical($route, $slug)     // Canonical URL
+getPageRobots($route, $slug)        // Robots tag
+```
+
 ---
 
 ## Theme Structure
@@ -83,10 +136,11 @@ return [
                 // Return Tailwind-styled HTML
             },
         ],
-        // ... more sections
     ],
 ];
 ```
+
+Two production themes are included: `default` (15 section types) and `patchdesigns` (11 section types with Welsh-inspired palette).
 
 ---
 
@@ -131,13 +185,13 @@ PHPue Matrix outputs **body HTML only**. It does not:
 - Set OpenGraph or Twitter Card tags
 - Handle canonical URLs
 
-Those are handled by your existing SEO layer — whether that's MetaControl, manual variables in `App.pvue`, or another approach. Matrix just gives you the rendered content to drop into your template. However, it is relativity simple to add to MetaControl in a dynamic sense.
+Those are handled by `App.pvue` which provides route-aware dynamic SEO with hardcoded fallbacks for listing pages.
 
 ```html
 // In your .pvue view:
 <script>
     $page = \PHPueExt\PHPueMatrix::getPage('blogs', $_GET['slug'] ?? '');
-    // SEO is handled separately by your App.pvue or MetaControl
+    // SEO is handled separately by your App.pvue
 </script>
 
 <template>
