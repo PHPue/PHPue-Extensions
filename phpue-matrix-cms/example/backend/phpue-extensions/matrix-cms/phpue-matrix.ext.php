@@ -1,5 +1,26 @@
 <?php 
-    /* Author(s): Edward Patch */
+    /**
+     * PHPue Extension: Matrix CMS
+     *
+     * A modern PHPue Extension for managing post content.
+     *
+     * @package    PHPueExt's Matrix CMS (Official)
+     * @version    0.1.0
+     * @author     Edward Patch
+     * @license    PHPueExtensions Repo's Licence
+     * @link       https://phpue.co.uk/
+     * @copyright  2026 Edward Patch
+     * 
+     * @description
+     * This extension provides a singleton PHPueMatrix class that allows
+     * create content to /blogs, /articles, with different ?slug's
+     * for use throughout your PHPue-powered project.
+     *
+     * @usage
+     * use PHPueExt\PHPueMatrix;
+     * 
+     * READ ME: https://github.com/PHPue/PHPue-Extensions/blob/PHPue-Extensions/phpue-matrix-cms/README.md
+     */
 
     namespace PHPueExt;
 
@@ -21,6 +42,25 @@
                     self::$instance = new self();
 
                 return self::$instance;
+            }
+
+            // ═══════════════════════════════════════════
+            // SHORTCODE HELPER
+            // ═══════════════════════════════════════════
+
+            private static function getThemeShortcodes(string $route, string $slug): array
+            {
+                $pagePath = self::$pagesDir . "/{$route}/{$slug}.php";
+                if (!file_exists($pagePath)) return [];
+                
+                $pageData = include $pagePath;
+                $themeName = $pageData['theme'] ?? 'default';
+                $themePath = self::$themesDir . "/{$themeName}.php";
+                
+                if (!file_exists($themePath)) return [];
+                
+                $theme = include $themePath;
+                return $theme['shortcodes'] ?? [];
             }
 
             // ═══════════════════════════════════════════
@@ -82,15 +122,18 @@
                 if (!file_exists($pagePath)) return '';
                 
                 $pageData = include $pagePath;
-                return $pageData['seo']['meta_title'] ?? $pageData['title'] ?? '';
+                $title = $pageData['seo']['meta_title'] ?? $pageData['title'] ?? '';
+                $shortcodes = self::getThemeShortcodes($route, $slug);
+                return self::parseShortcodes($title, $shortcodes);
             }
 
             public static function getPageDescription(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
+                $shortcodes = self::getThemeShortcodes($route, $slug);
                 
                 if (!empty($seo['meta_description'])) {
-                    return $seo['meta_description'];
+                    return self::parseShortcodes($seo['meta_description'], $shortcodes);
                 }
                 
                 $pagePath = self::$pagesDir . "/{$route}/{$slug}.php";
@@ -127,9 +170,10 @@
             public static function getPageOgImage(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
+                $shortcodes = self::getThemeShortcodes($route, $slug);
                 
                 if (!empty($seo['og_image'])) {
-                    return $seo['og_image'];
+                    return self::parseShortcodes($seo['og_image'], $shortcodes);
                 }
                 
                 $pagePath = self::$pagesDir . "/{$route}/{$slug}.php";
@@ -154,37 +198,27 @@
                 return '';
             }
 
-            // ═══════════════════════════════════════════
-            // NEW: Twitter Card Image
-            // ═══════════════════════════════════════════
-
             public static function getPageTwitterImage(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
+                $shortcodes = self::getThemeShortcodes($route, $slug);
                 
-                // Use dedicated Twitter image if set, fall back to OG image
                 if (!empty($seo['twitter_image'])) {
-                    return $seo['twitter_image'];
+                    return self::parseShortcodes($seo['twitter_image'], $shortcodes);
                 }
                 
-                // Fallback to OG image (which itself has fallbacks)
                 return self::getPageOgImage($route, $slug);
             }
-
-            // ═══════════════════════════════════════════
-            // FEATURED IMAGE
-            // ═══════════════════════════════════════════
 
             public static function getPageFeaturedImage(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
+                $shortcodes = self::getThemeShortcodes($route, $slug);
                 
-                // 1. Dedicated featured image field
                 if (!empty($seo['featured_image'])) {
-                    return $seo['featured_image'];
+                    return self::parseShortcodes($seo['featured_image'], $shortcodes);
                 }
                 
-                // 2. OG image (user-set or fallback)
                 $ogImage = self::getPageOgImage($route, $slug);
                 if (!empty($ogImage)) {
                     return $ogImage;
@@ -196,13 +230,15 @@
             public static function getPageKeywords(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
-                return $seo['meta_keywords'] ?? '';
+                $shortcodes = self::getThemeShortcodes($route, $slug);
+                return self::parseShortcodes($seo['meta_keywords'] ?? '', $shortcodes);
             }
 
             public static function getPageCanonical(string $route, string $slug): string
             {
                 $seo = self::getPageSeo($route, $slug);
-                return $seo['canonical_url'] ?? '';
+                $shortcodes = self::getThemeShortcodes($route, $slug);
+                return self::parseShortcodes($seo['canonical_url'] ?? '', $shortcodes);
             }
 
             public static function getPageRobots(string $route, string $slug): string

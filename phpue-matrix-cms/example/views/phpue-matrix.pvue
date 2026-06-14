@@ -64,7 +64,9 @@
         $status   = in_array($input['status'] ?? '', ['live', 'draft']) ? $input['status'] : 'draft';
         $sections = $input['sections'] ?? [];
         
-        // ═══ NEW: Parse SEO data ═══
+        $originalSlug  = $input['originalSlug'] ?? null;
+        $originalRoute = $input['originalRoute'] ?? null;
+
         $seo = [
             'meta_title'       => $input['seo_meta_title'] ?? '',
             'meta_description' => $input['seo_meta_description'] ?? '',
@@ -85,7 +87,35 @@
         }
 
         $ok = \PHPueExt\PHPueMatrix::createPage($route, $slug, $theme, $sections, $title, $status, $seo);
-        echo json_encode(['success' => $ok, 'slug' => $slug, 'route' => $route, 'path' => "pages/{$route}/{$slug}.php"]);
+        
+        if ($ok && ($originalSlug || $originalRoute)) {
+            $oldRoute = $originalRoute ?? $route;
+            $oldSlug = $originalSlug ?? $slug;
+            if ($oldRoute !== $route || $oldSlug !== $slug) {
+                \PHPueExt\PHPueMatrix::deletePage($oldRoute, $oldSlug);
+            }
+        }
+
+        echo json_encode(['success' => $ok, 'slug' => $slug, 'route' => $route]);
+        exit;
+    }
+
+    @AJAX('POST')
+    function duplicateCmsPage($input)
+    {
+        $route = $input['route'] ?? 'blogs';
+        $slug  = preg_replace('/[^a-z0-9\-]/', '', $input['slug'] ?? '');
+        if (empty($slug)) { http_response_code(400); echo json_encode(['error' => 'Slug required']); exit; }
+        
+        $pagePath = __DIR__ . '/backend/phpue-extensions/matrix-cms/pages/' . basename($route) . '/' . basename($slug) . '.php';
+        if (!file_exists($pagePath)) { http_response_code(404); echo json_encode(['error' => 'Page not found']); exit; }
+        
+        $data = include $pagePath;
+        $newSlug = $slug . '-copy-' . dechex(time());
+        $newTitle = ($data['title'] ?? 'Untitled') . ' (Copy)';
+        
+        $ok = \PHPueExt\PHPueMatrix::createPage($route, $newSlug, $data['theme'] ?? 'default', $data['sections'] ?? [], $newTitle, 'draft', $data['seo'] ?? []);
+        echo json_encode(['success' => $ok, 'slug' => $newSlug, 'route' => $route]);
         exit;
     }
 
@@ -101,15 +131,49 @@
     }
 
     @AJAX('POST')
+    function deleteCmsCategory($input)
+    {
+        $route = basename($input['route'] ?? '');
+        if (empty($route) || $route === 'templates') { http_response_code(400); echo json_encode(['error' => 'Invalid category']); exit; }
+        
+        $dir = __DIR__ . '/backend/phpue-extensions/matrix-cms/pages/' . $route;
+        if (!is_dir($dir)) { http_response_code(404); echo json_encode(['error' => 'Category not found']); exit; }
+
+        $files = glob($dir . '/*');
+        foreach ($files as $file) {
+            if (is_file($file)) unlink($file);
+        }
+        $ok = rmdir($dir);
+        
+        echo json_encode(['success' => $ok, 'route' => $route]);
+        exit;
+    }
+
+    @AJAX('POST')
     function autoSaveDraft($input)
     {
         $route    = $input['route'] ?? 'blogs';
         $slug     = preg_replace('/[^a-z0-9\-]/', '', $input['slug'] ?? '');
         $theme    = $input['theme'] ?? 'default';
         $title    = $input['title'] ?? 'Untitled';
+        $status   = in_array($input['status'] ?? '', ['live', 'draft']) ? $input['status'] : 'draft';
         $sections = $input['sections'] ?? [];
+        
+        $seo = [
+            'meta_title'       => $input['seo_meta_title'] ?? '',
+            'meta_description' => $input['seo_meta_description'] ?? '',
+            'meta_keywords'    => $input['seo_meta_keywords'] ?? '',
+            'og_title'         => $input['seo_og_title'] ?? '',
+            'og_description'   => $input['seo_og_description'] ?? '',
+            'og_image'         => $input['seo_og_image'] ?? '',
+            'og_type'          => $input['seo_og_type'] ?? 'article',
+            'twitter_card'     => $input['seo_twitter_card'] ?? 'summary_large_image',
+            'canonical_url'    => $input['seo_canonical_url'] ?? '',
+            'noindex'          => !empty($input['seo_noindex']),
+        ];
+
         if (empty($slug) || empty($sections)) { echo json_encode(['success' => false]); exit; }
-        $ok = \PHPueExt\PHPueMatrix::createPage($route, $slug, $theme, $sections, $title, 'draft');
+        $ok = \PHPueExt\PHPueMatrix::createPage($route, $slug, $theme, $sections, $title, $status, $seo);
         echo json_encode(['success' => $ok, 'slug' => $slug, 'route' => $route]);
         exit;
     }
@@ -228,16 +292,25 @@
                     </div>
                     <div class="space-y-0.5 max-h-32 overflow-y-auto">
                         <?php foreach ($routes as $routeKey => $routeData): ?>
-                            <a href="?route=<?= urlencode($routeKey) ?>" 
-                               class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition
-                                      <?= ($activeRoute === $routeKey) ? 'font-medium' : 'text-stone-600 hover:bg-stone-50' ?>"
-                                      style="<?= ($activeRoute === $routeKey) ? 'background:var(--admin-accent-light);color:var(--admin-accent-text)' : '' ?>">
-                                <span class="flex items-center gap-1.5">
-                                    <i class="fa-solid fa-folder text-xs" style="color:<?= ($activeRoute === $routeKey) ? 'var(--admin-accent)' : '#a8a29e' ?>"></i>
-                                    /<?= htmlspecialchars($routeKey) ?>
-                                </span>
-                                <span><?= $routeData['count'] ?></span>
-                            </a>
+                            <div class="group flex items-center pr-1">
+                                <a href="?route=<?= urlencode($routeKey) ?>" 
+                                   class="flex-1 flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition
+                                          <?= ($activeRoute === $routeKey) ? 'font-medium' : 'text-stone-600 hover:bg-stone-50' ?>"
+                                          style="<?= ($activeRoute === $routeKey) ? 'background:var(--admin-accent-light);color:var(--admin-accent-text)' : '' ?>">
+                                    <span class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-folder text-xs" style="color:<?= ($activeRoute === $routeKey) ? 'var(--admin-accent)' : '#a8a29e' ?>"></i>
+                                        /<?= htmlspecialchars($routeKey) ?>
+                                    </span>
+                                    <span class="group-hover:hidden"><?= $routeData['count'] ?></span>
+                                </a>
+                                <?php if ($routeKey !== 'blogs'): ?>
+                                <button type="button" onclick="deleteCategory('<?= htmlspecialchars($routeKey) ?>')"
+                                        class="opacity-0 group-hover:opacity-100 p-1.5 text-stone-300 hover:text-red-500 transition"
+                                        title="Delete Category">
+                                    <i class="fa-solid fa-folder-minus text-[10px]"></i>
+                                </button>
+                                <?php endif; ?>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -258,22 +331,25 @@
                             <button type="button" class="h-full px-3 bg-white border rounded-lg text-xs text-stone-600 transition" style="border-color:var(--admin-card-border)">
                                 <i class="fa-solid fa-chevron-down"></i>
                             </button>
-                            <div class="hidden group-hover:block absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl z-20 w-48 py-1">
-                                <div class="px-3 py-1.5 text-xs font-semibold text-stone-400 uppercase tracking-wider">From Template</div>
-                                <?php foreach ($templates as $tpl): ?>
-                                    <a href="?route=blogs&new=true&from_template=<?= urlencode($tpl['slug']) ?>" class="block px-4 py-2 text-xs hover:bg-stone-50 transition">
-                                        <?= htmlspecialchars($tpl['title']) ?>
-                                    </a>
-                                <?php endforeach; ?>
+                            <!-- Bridge the gap with a transparent top padding to prevent losing hover state -->
+                            <div class="hidden group-hover:block absolute right-0 top-full pt-1 z-20 w-48">
+                                <div class="bg-white border border-stone-200 rounded-xl shadow-xl py-1">
+                                    <div class="px-3 py-1.5 text-xs font-semibold text-stone-400 uppercase tracking-wider">From Template</div>
+                                    <?php foreach ($templates as $tpl): ?>
+                                        <a href="?route=blogs&new=true&from_template=<?= urlencode($tpl['slug']) ?>" class="block px-4 py-2 text-xs hover:bg-stone-50 transition">
+                                            <?= htmlspecialchars($tpl['title']) ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                         </div>
                         <?php endif; ?>
                     </div>
                 </div>
                 
-                <nav class="flex-1 overflow-y-auto divide-y" style="border-color:var(--admin-divider)">
+                <nav class="flex-1 overflow-y-auto divide-y" id="sidebarNav" style="border-color:var(--admin-divider)">
                     <?php if (empty($pages)): ?>
-                        <div class="p-4 text-center text-stone-400 text-xs">
+                        <div id="noPagesMsg" class="p-4 text-center text-stone-400 text-xs">
                             <i class="fa-regular fa-folder-open text-xl block mb-1.5"></i>
                             No pages in /<?= htmlspecialchars($activeRoute) ?>
                         </div>
@@ -285,15 +361,22 @@
                                           <?= ($activeSlug === $p['slug']) ? 'border-l-2 font-medium' : 'text-stone-600' ?>"
                                           style="<?= ($activeSlug === $p['slug']) ? 'background:var(--admin-accent-light);border-color:var(--admin-accent);color:var(--admin-accent-text)' : '' ?>">
                                     <div class="flex items-center gap-2 min-w-0">
-                                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 <?= $p['status'] === 'live' ? 'bg-emerald-500' : 'bg-amber-400' ?>"></span>
-                                        <span class="truncate"><?= htmlspecialchars($p['title']) ?></span>
+                                        <span id="status-dot-<?= htmlspecialchars($p['slug']) ?>" class="w-1.5 h-1.5 rounded-full flex-shrink-0 <?= $p['status'] === 'live' ? 'bg-emerald-500' : 'bg-amber-400' ?>"></span>
+                                        <span id="sidebar-title-<?= htmlspecialchars($p['slug']) ?>" class="truncate"><?= htmlspecialchars($p['title']) ?></span>
                                     </div>
                                 </a>
-                                <button type="button" onclick="deletePage('<?= htmlspecialchars($p['slug']) ?>', '<?= htmlspecialchars($p['title']) ?>')"
-                                        class="px-2 py-2.5 text-stone-300 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100 flex-shrink-0"
-                                        title="Delete page">
-                                    <i class="fa-solid fa-trash-can text-xs"></i>
-                                </button>
+                                <div class="flex items-center opacity-0 group-hover:opacity-100 transition">
+                                    <button type="button" onclick="duplicatePageSidebar('<?= htmlspecialchars($p['slug']) ?>', '<?= htmlspecialchars($p['title']) ?>')"
+                                            class="px-2 py-2.5 text-stone-300 hover:text-amber-500 hover:bg-amber-50 flex-shrink-0"
+                                            title="Duplicate page">
+                                        <i class="fa-regular fa-copy text-xs"></i>
+                                    </button>
+                                    <button type="button" onclick="deletePage('<?= htmlspecialchars($p['slug']) ?>', '<?= htmlspecialchars($p['title']) ?>')"
+                                            class="px-2 py-2.5 text-stone-300 hover:text-red-500 hover:bg-red-50 flex-shrink-0"
+                                            title="Delete page">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -320,15 +403,15 @@
                             </div>
                             <h3 class="font-bold text-emerald-800 mb-1">Page Saved</h3>
                             <p class="text-sm text-emerald-600">Your page has been written to disk.</p>
-                            <button type="button" onclick="resetForm()" class="mt-3 text-emerald-700 font-medium text-sm hover:underline">
+                            <button type="button" onclick="continueEditing()" class="mt-3 text-emerald-700 font-medium text-sm hover:underline">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i>Continue Editing
                             </button>
                             <p class="text-xs text-stone-400 mt-5 pt-4 border-t border-emerald-200">
                                 Published with <span class="font-semibold text-stone-500">PHPue Matrix</span> 😄
                             </p>
-                        </div>
+                            </div>
 
-                        <div id="formFields" class="space-y-4">
+                            <div id="formFields" class="space-y-4">
                             
                             <!-- ═══════════ PAGE SETTINGS ═══════════ -->
                             <div class="rounded-2xl border p-4" style="background:var(--admin-card);border-color:var(--admin-card-border)">
@@ -350,8 +433,7 @@
                                                value="<?= htmlspecialchars($activePage['slug'] ?? $activeSlug ?? '') ?>"
                                                class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
                                                style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
-                                               placeholder="my-page"
-                                               <?= ($activePage && $activePage['slug']) ? 'readonly' : '' ?>>
+                                               placeholder="my-page">
                                     </div>
                                     <div>
                                         <label for="pageRoute" class="block text-xs font-medium text-stone-500 mb-1">Route <span class="text-red-400">*</span></label>
@@ -359,8 +441,7 @@
                                                value="<?= htmlspecialchars($activeRoute) ?>"
                                                class="w-full px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 transition font-mono"
                                                style="background:var(--admin-input-bg);border:1px solid var(--admin-input-border)"
-                                               placeholder="blogs"
-                                               <?= $activePage ? 'readonly' : '' ?>>
+                                               placeholder="blogs">
                                     </div>
                                     <div>
                                         <label for="pageStatus" class="block text-xs font-medium text-stone-500 mb-1">Status</label>
@@ -588,7 +669,8 @@
                             <input type="hidden" name="route" id="hiddenRoute" value="<?= htmlspecialchars($activeRoute) ?>">
                             <input type="hidden" name="theme" id="hiddenTheme" value="<?= htmlspecialchars($activePage['theme'] ?? 'default') ?>">
                             <?php if ($activeSlug && $activePage): ?>
-                                <input type="hidden" name="originalSlug" value="<?= htmlspecialchars($activeSlug) ?>">
+                                <input type="hidden" name="originalSlug" id="originalSlug" value="<?= htmlspecialchars($activeSlug) ?>">
+                                <input type="hidden" name="originalRoute" id="originalRoute" value="<?= htmlspecialchars($activeRoute) ?>">
                             <?php endif; ?>
 
                             <!-- ═══════════ ACTION BAR ═══════════ -->
@@ -682,7 +764,7 @@
     function populateSectionDropdown(){const d=document.getElementById('sectionDropdown');if(!d)return;const t=document.getElementById('pageTheme').value;const td=allThemes[t];if(!td)return;d.innerHTML=Object.entries(td.sectionLabels).map(([t,def])=>`<button type="button" onclick="addSectionAt('${t}',getNextPosition());document.getElementById('sectionDropdown').classList.add('hidden');" class="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2 transition"><i class="fa-solid fa-plus text-xs text-amber-500"></i>${def.label}</button>`).join('')}
     function getNextPosition(){const c=document.getElementById('sectionsContainer');return c?c.querySelectorAll('.section-card').length:0}
     function triggerAutoSave(){clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>autoSaveDraft(),1500)}
-    async function autoSaveDraft(){const f=document.getElementById('cmsForm');if(!f)return;const fd=new FormData(f);const slug=fd.get('pageSlug');const route=fd.get('pageRoute')||fd.get('route')||document.getElementById('hiddenRoute').value;if(!slug)return;const s=collectSections(fd);if(s.length===0)return;const data={action:'autoSaveDraft',route,slug,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:fd.get('pageTitle')||'Untitled',sections:s,seo_meta_title:fd.get('seo_meta_title')||'',seo_meta_description:fd.get('seo_meta_description')||'',seo_meta_keywords:fd.get('seo_meta_keywords')||'',seo_og_title:fd.get('seo_og_title')||'',seo_og_description:fd.get('seo_og_description')||'',seo_og_image:fd.get('seo_og_image')||'',seo_og_type:fd.get('seo_og_type')||'article',seo_twitter_card:fd.get('seo_twitter_card')||'summary_large_image',seo_canonical_url:fd.get('seo_canonical_url')||'',seo_noindex:fd.get('seo_noindex')||''};const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-blue-400';dot.style.animation='pulse 1s infinite'}const label=document.getElementById('previewLabel');if(label)label.textContent='Saving...';try{const r=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(r.ok){const j=await r.json();if(j.success){currentPreviewSlug=j.slug;currentPreviewRoute=j.route;updatePreview();if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}if(label){label.textContent='Draft saved';setTimeout(()=>{if(label&&label.textContent==='Draft saved')label.textContent='Draft'},2000)}}}}catch(e){if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-red-400';dot.style.animation=''}if(label)label.textContent='Error'}}
+    async function autoSaveDraft(){const f=document.getElementById('cmsForm');if(!f)return;const fd=new FormData(f);const slug=fd.get('pageSlug');const route=fd.get('pageRoute')||fd.get('route')||document.getElementById('hiddenRoute').value;if(!slug)return;const s=collectSections(fd);if(s.length===0)return;const status=document.getElementById('pageStatus').value||'draft';const seoData=collectSeoData(fd);const data={action:'autoSaveDraft',route,slug,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:fd.get('pageTitle')||'Untitled',status:status,sections:s,...seoData};const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-blue-400';dot.style.animation='pulse 1s infinite'}const label=document.getElementById('previewLabel');if(label)label.textContent='Saving...';try{const r=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(r.ok){const j=await r.json();if(j.success){currentPreviewSlug=j.slug;currentPreviewRoute=j.route;updatePreview();lastSavedData={title:data.title,slug:data.slug,route:data.route,status:data.status,theme:data.theme,sections:data.sections,seo:seoData};if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}if(label){const isL=data.status==='live';label.textContent=isL?'Live saved':'Draft saved';setTimeout(()=>{if(label&&(label.textContent==='Draft saved'||label.textContent==='Live saved'))label.textContent=isL?'Live':'Draft'},2000)}}}}catch(e){if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-red-400';dot.style.animation=''}if(label)label.textContent='Error'}}
     function collectSections(fd){const idx=new Set();for(const[k]of fd.entries()){const m=k.match(/sections\[(\d+)\]/);if(m)idx.add(parseInt(m[1]))}const s=[];Array.from(idx).sort((a,b)=>a-b).forEach(i=>{const t=fd.get(`sections[${i}][type]`);if(!t)return;const sec={type:t,data:{}};for(const[k,v]of fd.entries()){const fm=k.match(new RegExp(`sections\\[${i}\\]\\[(\\w+)\\]`));if(fm&&fm[1]!=='type')sec.data[fm[1]]=v}s.push(sec)});return s}
     function collectSeoData(fd){return{seo_meta_title:fd.get('seo_meta_title')||'',seo_meta_description:fd.get('seo_meta_description')||'',seo_meta_keywords:fd.get('seo_meta_keywords')||'',seo_og_title:fd.get('seo_og_title')||'',seo_og_description:fd.get('seo_og_description')||'',seo_og_image:fd.get('seo_og_image')||'',seo_og_type:fd.get('seo_og_type')||'article',seo_twitter_card:fd.get('seo_twitter_card')||'summary_large_image',seo_canonical_url:fd.get('seo_canonical_url')||'',seo_noindex:fd.get('seo_noindex')||''}}
     async function updatePreview(){const ifr=document.getElementById('previewFrame');if(!ifr||!currentPreviewSlug||!currentPreviewRoute)return;try{const r=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'getPreview',route:currentPreviewRoute,slug:currentPreviewSlug})});if(r.ok){const h=await r.text();ifr.srcdoc=h}}catch(e){console.error('Preview failed:',e)}}
@@ -695,11 +777,15 @@
     function addSectionAt(type,pos){const c=document.getElementById('sectionsContainer');const ct=document.getElementById('pageTheme').value;const td=allThemes[ct];const def=td?.sectionLabels?.[type];if(!def)return;const es=c.querySelector('.text-center');if(es)es.remove();const fh=def.fields.map(f=>{const ta=f==='body'||f==='subheading';const l=f.replace(/_/g,' ');return`<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta?`<textarea name="sections[${pos}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}..."></textarea>`:`<input type="text" name="sections[${pos}][${f}]" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`}).join('');const card=document.createElement('div');card.className='section-card rounded-xl border p-3';card.setAttribute('data-section-type',type);card.style.background='var(--admin-section-bg)';card.style.borderColor='var(--admin-card-border)';card.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:var(--admin-accent-light);color:var(--admin-accent-text)"><i class="fa-solid fa-layer-group mr-1"></i>${def.label}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div><div class="grid gap-2">${fh}</div><input type="hidden" name="sections[${pos}][type]" value="${type}">`;const ips=c.querySelectorAll('.insert-point');if(ips[pos])ips[pos].after(card);else c.appendChild(card);const nip=document.createElement('div');nip.className='insert-point flex justify-center py-1';nip.setAttribute('data-position',pos+1);nip.innerHTML=`<button type="button" onclick="showInsertDropdown(event,${pos+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;card.after(nip);reindexAll();triggerAutoSave()}
     function removeSection(btn){const card=btn.closest('.section-card');if(!card)return;const ni=card.nextElementSibling;card.style.opacity='0';card.style.transform='scale(0.95)';card.style.transition='all 0.2s ease';setTimeout(()=>{card.remove();if(ni&&ni.classList.contains('insert-point'))ni.remove();reindexAll();const c=document.getElementById('sectionsContainer');if(c&&c.querySelectorAll('.section-card').length===0)c.innerHTML=`<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`;triggerAutoSave()},200)}
     function reindexAll(){const c=document.getElementById('sectionsContainer');if(!c)return;c.querySelectorAll('.section-card').forEach((card,i)=>{card.setAttribute('data-section-index',i);card.querySelectorAll('input, textarea').forEach(inp=>{const n=inp.getAttribute('name');if(n)inp.setAttribute('name',n.replace(/sections\[\d+\]/,`sections[${i}]`))});const ht=card.querySelector('input[type="hidden"]');if(ht)ht.setAttribute('name',`sections[${i}][type]`)});c.querySelectorAll('.insert-point').forEach((p,i)=>{p.setAttribute('data-position',i);const b=p.querySelector('button');if(b)b.setAttribute('onclick',`showInsertDropdown(event,${i})`)})}
-    async function submitForm(event,methodName){event.preventDefault();const form=event.target;const v=validateForm();if(!v.isValid){const fe=document.querySelector('.field-error');if(fe)fe.scrollIntoView({behavior:'smooth',block:'center'});return}const submitBtn=document.getElementById('submitBtn');const submitText=document.getElementById('submitText');const submitIcon=document.getElementById('submitIcon');const obc=submitBtn.innerHTML;submitBtn.disabled=true;submitText.textContent='Saving...';submitIcon.className='fa-solid fa-spinner fa-spin';try{const fd=new FormData(form);const seoData=collectSeoData(fd);const data={action:methodName,route:fd.get('pageRoute')||document.getElementById('hiddenRoute').value,slug:document.getElementById('pageSlug').value.trim(),theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:document.getElementById('pageTitle').value.trim(),status:fd.get('pageStatus')||'draft',originalSlug:fd.get('originalSlug')||null,sections:collectSections(fd),...seoData};lastSavedData={title:data.title,slug:data.slug,route:data.route,status:data.status,theme:data.theme,sections:data.sections,seo:seoData};const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const result=await res.json();document.getElementById('formFields').classList.add('hidden');document.getElementById('formSuccess').classList.remove('hidden');document.getElementById('formSuccess').scrollIntoView({behavior:'smooth',block:'center'});if(result.slug){currentPreviewSlug=result.slug;currentPreviewRoute=result.route;updatePreview();const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}const label=document.getElementById('previewLabel');if(label)label.textContent=data.status==='live'?'Live':'Draft'}document.getElementById('topBarThemeName').textContent=data.theme;if(result.slug&&!data.originalSlug)setTimeout(()=>{window.location.href='?route='+encodeURIComponent(data.route)+'&edit='+encodeURIComponent(result.slug)},1500)}else{let et='Save failed.';try{const ed=await res.json();et=ed.error||et}catch(e){}throw new Error(et)}}catch(error){submitBtn.innerHTML=obc;submitBtn.disabled=false;const em=document.createElement('p');em.className='text-red-500 text-xs text-center mt-2 bg-red-50 border border-red-200 rounded-lg py-2 px-4';em.textContent=error.message||'Save failed.';em.id='formError';form.appendChild(em);em.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>em.remove(),5000)}}
-    function resetForm(){document.getElementById('formFields').classList.remove('hidden');document.getElementById('formSuccess').classList.add('hidden');clearAllFieldErrors();if(lastSavedData){document.getElementById('pageTitle').value=lastSavedData.title||'';document.getElementById('pageStatus').value=lastSavedData.status||'draft';if(lastSavedData.theme){document.getElementById('pageTheme').value=lastSavedData.theme;document.getElementById('hiddenTheme').value=lastSavedData.theme;document.getElementById('topBarThemeName').textContent=lastSavedData.theme}if(lastSavedData.seo){const s=lastSavedData.seo;document.getElementById('seo_meta_title').value=s.seo_meta_title||'';document.getElementById('seo_meta_description').value=s.seo_meta_description||'';document.getElementById('seo_meta_keywords').value=s.seo_meta_keywords||'';document.getElementById('seo_og_title').value=s.seo_og_title||'';document.getElementById('seo_og_description').value=s.seo_og_description||'';document.getElementById('seo_og_image').value=s.seo_og_image||'';if(s.seo_og_type&&document.getElementById('seo_og_type'))document.getElementById('seo_og_type').value=s.seo_og_type;if(s.seo_twitter_card)document.getElementById('seo_twitter_card').value=s.seo_twitter_card;document.getElementById('seo_canonical_url').value=s.seo_canonical_url||'';document.getElementById('seo_noindex').checked=!!s.seo_noindex;const sc=document.getElementById('seoDescCount');if(sc)sc.textContent=(s.seo_meta_description||'').length;const sp=document.getElementById('seoPanel');if(sp&&Object.values(s).some(v=>v))sp.classList.remove('hidden')}const c=document.getElementById('sectionsContainer');c.innerHTML='';if(!lastSavedData.sections||lastSavedData.sections.length===0){c.innerHTML=`<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`}else{const ct=lastSavedData.theme||'default';const td=allThemes[ct];const ti=document.createElement('div');ti.className='insert-point flex justify-center py-1';ti.setAttribute('data-position',0);ti.innerHTML=`<button type="button" onclick="showInsertDropdown(event,0)" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ti);lastSavedData.sections.forEach((section,idx)=>{const def=td?.sectionLabels?.[section.type];const missing=!def;const fh=def?def.fields.map(f=>{const ta=f==='body'||f==='subheading';const l=f.replace(/_/g,' ');const v=(section.data&&section.data[f])?section.data[f]:'';return`<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta?`<textarea name="sections[${idx}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">${escapeHtml(v)}</textarea>`:`<input type="text" name="sections[${idx}][${f}]" value="${escapeHtml(v)}" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`}).join(''):'';const card=document.createElement('div');card.className='section-card rounded-xl border p-3';card.setAttribute('data-section-index',idx);card.setAttribute('data-section-type',section.type);card.style.background='var(--admin-section-bg)';card.style.borderColor=missing?'#f87171':'var(--admin-card-border)';card.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:${missing?'#fef2f2':'var(--admin-accent-light)'};color:${missing?'#dc2626':'var(--admin-accent-text)'}"><i class="fa-solid fa-layer-group mr-1"></i>${def?def.label:section.type+' (missing)'}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div>${missing?'<div class="text-xs text-red-600 font-medium flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.</div>':''}${def?`<div class="grid gap-2">${fh}</div>`:''}<input type="hidden" name="sections[${idx}][type]" value="${section.type}">`;c.appendChild(card);const ip=document.createElement('div');ip.className='insert-point flex justify-center py-1';ip.setAttribute('data-position',idx+1);ip.innerHTML=`<button type="button" onclick="showInsertDropdown(event,${idx+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ip)})}}const sb=document.getElementById('submitBtn');sb.disabled=false;sb.innerHTML=`<span id="submitText"><i class="fa-solid fa-floppy-disk mr-1"></i>Update Page</span><i id="submitIcon" class="fa-solid fa-paper-plane"></i>`;document.getElementById('formSuccess').scrollIntoView({behavior:'smooth'});setTimeout(()=>updatePreview(),300);populateSectionDropdown()}
+    function addToSidebar(slug,title,status,route){const nav=document.getElementById('sidebarNav');if(!nav)return;const noMsg=document.getElementById('noPagesMsg');if(noMsg)noMsg.remove();if(document.getElementById('status-dot-'+slug))return;const div=document.createElement('div');div.className='flex items-center group';const isLive=status==='live';const dotClass=isLive?'bg-emerald-500':'bg-amber-400';div.innerHTML=`<a href="?route=${encodeURIComponent(route)}&edit=${encodeURIComponent(slug)}" class="flex-1 flex items-center justify-between px-3 py-2.5 hover:bg-stone-50 transition text-xs text-stone-600"><div class="flex items-center gap-2 min-w-0"><span id="status-dot-${slug}" class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass}"></span><span id="sidebar-title-${slug}" class="truncate">${escapeHtml(title)}</span></div></a><div class="flex items-center opacity-0 group-hover:opacity-100 transition"><button type="button" onclick="duplicatePageSidebar('${slug}','${escapeHtml(title)}')" class="px-2 py-2.5 text-stone-300 hover:text-amber-500 hover:bg-amber-50 flex-shrink-0" title="Duplicate page"><i class="fa-regular fa-copy text-xs"></i></button><button type="button" onclick="deletePage('${slug}','${escapeHtml(title)}')" class="px-2 py-2.5 text-stone-300 hover:text-red-500 hover:bg-red-50 flex-shrink-0" title="Delete page"><i class="fa-solid fa-trash-can text-xs"></i></button></div>`;nav.appendChild(div)}
+    async function duplicatePageSidebar(slug,title){if(!confirm(`Duplicate "${title}"?`))return;try{const route='<?=htmlspecialchars($activeRoute)?>';const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'duplicateCmsPage',route,slug})});if(res.ok){const r=await res.json();if(r.success)window.location.href='?route='+encodeURIComponent(route)+'&edit='+encodeURIComponent(r.slug)}}catch(e){alert('Duplicate failed.')}}
+    async function submitForm(event,methodName){event.preventDefault();const form=event.target;const v=validateForm();if(!v.isValid){const fe=document.querySelector('.field-error');if(fe)fe.scrollIntoView({behavior:'smooth',block:'center'});return}const submitBtn=document.getElementById('submitBtn');const submitText=document.getElementById('submitText');const submitIcon=document.getElementById('submitIcon');const obc=submitBtn.innerHTML;submitBtn.disabled=true;submitText.textContent='Saving...';submitIcon.className='fa-solid fa-spinner fa-spin';try{const fd=new FormData(form);const seoData=collectSeoData(fd);const data={action:methodName,route:fd.get('pageRoute')||document.getElementById('hiddenRoute').value,slug:document.getElementById('pageSlug').value.trim(),theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:document.getElementById('pageTitle').value.trim(),status:document.getElementById('pageStatus').value||'draft',originalSlug:fd.get('originalSlug')||null,originalRoute:fd.get('originalRoute')||null,sections:collectSections(fd),...seoData};lastSavedData={title:data.title,slug:data.slug,route:data.route,status:data.status,theme:data.theme,sections:data.sections,seo:seoData};const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const result=await res.json();document.getElementById('formFields').classList.add('hidden');document.getElementById('formSuccess').classList.remove('hidden');document.getElementById('formSuccess').scrollIntoView({behavior:'smooth',block:'center'});if(result.slug){currentPreviewSlug=result.slug;currentPreviewRoute=result.route;updatePreview();const dot=document.getElementById('previewDot');if(dot){dot.className='h-1.5 w-1.5 rounded-full bg-emerald-400';dot.style.animation=''}const label=document.getElementById('previewLabel');if(label)label.textContent=data.status==='live'?'Live':'Draft';const isRename=(data.originalSlug&&data.originalSlug!==result.slug)||(data.originalRoute&&data.originalRoute!==result.route);if(isRename){if(data.originalRoute!==result.route){window.location.href='?route='+encodeURIComponent(result.route)+'&edit='+encodeURIComponent(result.slug);return}const oldLink=document.querySelector(`a[href*="edit=${data.originalSlug}"]`);if(oldLink){const newHref=`?route=${encodeURIComponent(result.route)}&edit=${encodeURIComponent(result.slug)}`;oldLink.setAttribute('href',newHref);const dot=document.getElementById('status-dot-'+data.originalSlug);if(dot)dot.id='status-dot-'+result.slug;const title=document.getElementById('sidebar-title-'+data.originalSlug);if(title)title.id='sidebar-title-'+result.slug;const delBtn=oldLink.parentElement.querySelector('button[onclick*="deletePage"]');if(delBtn)delBtn.setAttribute('onclick',`deletePage('${result.slug}','${escapeHtml(data.title)}')`);const dupBtn=oldLink.parentElement.querySelector('button[onclick*="duplicatePageSidebar"]');if(dupBtn)dupBtn.setAttribute('onclick',`duplicatePageSidebar('${result.slug}','${escapeHtml(data.title)}')`)}history.replaceState(null,'',`?route=${encodeURIComponent(result.route)}&edit=${encodeURIComponent(result.slug)}`)}const sDot=document.getElementById('status-dot-'+result.slug);if(sDot)sDot.className='w-1.5 h-1.5 rounded-full flex-shrink-0 '+(data.status==='live'?'bg-emerald-500':'bg-amber-400');const sTitle=document.getElementById('sidebar-title-'+result.slug);if(sTitle)sTitle.textContent=data.title}document.getElementById('topBarThemeName').textContent=data.theme;if(result.slug&&!data.originalSlug)setTimeout(()=>{window.location.href='?route='+encodeURIComponent(data.route)+'&edit='+encodeURIComponent(result.slug)},1500)}else{let et='Save failed.';try{const ed=await res.json();et=ed.error||et}catch(e){}throw new Error(et)}}catch(error){submitBtn.innerHTML=obc;submitBtn.disabled=false;const em=document.createElement('p');em.className='text-red-500 text-xs text-center mt-2 bg-red-50 border border-red-200 rounded-lg py-2 px-4';em.textContent=error.message||'Save failed.';em.id='formError';form.appendChild(em);em.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>em.remove(),5000)}}
+    function continueEditing(){document.getElementById('formFields').classList.remove('hidden');document.getElementById('formSuccess').classList.add('hidden');clearAllFieldErrors();if(lastSavedData){document.getElementById('pageTitle').value=lastSavedData.title||'';document.getElementById('pageStatus').value=lastSavedData.status||'draft';document.getElementById('pageSlug').value=lastSavedData.slug||'';document.getElementById('pageRoute').value=lastSavedData.route||'';const os=document.getElementById('originalSlug');if(os)os.value=lastSavedData.slug;const or=document.getElementById('originalRoute');if(or)or.value=lastSavedData.route;if(lastSavedData.theme){document.getElementById('pageTheme').value=lastSavedData.theme;document.getElementById('hiddenTheme').value=lastSavedData.theme;document.getElementById('topBarThemeName').textContent=lastSavedData.theme}
+if(lastSavedData.seo){const s=lastSavedData.seo;document.getElementById('seo_meta_title').value=s.seo_meta_title||'';document.getElementById('seo_meta_description').value=s.seo_meta_description||'';document.getElementById('seo_meta_keywords').value=s.seo_meta_keywords||'';document.getElementById('seo_og_title').value=s.seo_og_title||'';document.getElementById('seo_og_description').value=s.seo_og_description||'';document.getElementById('seo_og_image').value=s.seo_og_image||'';if(s.seo_og_type&&document.getElementById('seo_og_type'))document.getElementById('seo_og_type').value=s.seo_og_type;if(s.seo_twitter_card)document.getElementById('seo_twitter_card').value=s.seo_twitter_card;document.getElementById('seo_canonical_url').value=s.seo_canonical_url||'';document.getElementById('seo_noindex').checked=!!s.seo_noindex;const sc=document.getElementById('seoDescCount');if(sc)sc.textContent=(s.seo_meta_description||'').length;const sp=document.getElementById('seoPanel');if(sp&&Object.values(s).some(v=>v))sp.classList.remove('hidden')}const c=document.getElementById('sectionsContainer');c.innerHTML='';if(!lastSavedData.sections||lastSavedData.sections.length===0){c.innerHTML=`<div class="insert-point flex justify-center py-2" data-position="0"><button type="button" onclick="showInsertDropdown(event,0)" class="flex items-center gap-1.5 text-stone-400 hover:text-amber-500 hover:bg-amber-50 px-4 py-2 rounded-lg transition border-2 border-dashed border-stone-300 hover:border-amber-400"><i class="fa-solid fa-plus text-xs"></i><span class="text-xs font-medium">Add First Section</span></button></div>`}else{const ct=lastSavedData.theme||'default';const td=allThemes[ct];const ti=document.createElement('div');ti.className='insert-point flex justify-center py-1';ti.setAttribute('data-position',0);ti.innerHTML=`<button type="button" onclick="showInsertDropdown(event,0)" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ti);lastSavedData.sections.forEach((section,idx)=>{const def=td?.sectionLabels?.[section.type];const missing=!def;const fh=def?def.fields.map(f=>{const ta=f==='body'||f==='subheading';const l=f.replace(/_/g,' ');const v=(section.data&&section.data[f])?section.data[f]:'';return`<div><label class="block text-xs font-medium text-stone-500 mb-0.5 capitalize">${l}</label>${ta?`<textarea name="sections[${idx}][${f}]" rows="2" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">${escapeHtml(v)}</textarea>`:`<input type="text" name="sections[${idx}][${f}]" value="${escapeHtml(v)}" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20" placeholder="Enter ${l}...">`}</div>`}).join(''):'';const card=document.createElement('div');card.className='section-card rounded-xl border p-3';card.setAttribute('data-section-index',idx);card.setAttribute('data-section-type',section.type);card.style.background='var(--admin-section-bg)';card.style.borderColor=missing?'#f87171':'var(--admin-card-border)';card.innerHTML=`<div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:${missing?'#fef2f2':'var(--admin-accent-light)'};color:${missing?'#dc2626':'var(--admin-accent-text)'}"><i class="fa-solid fa-layer-group mr-1"></i>${def?def.label:section.type+' (missing)'}</span><button type="button" onclick="removeSection(this)" class="text-stone-400 hover:text-red-500 transition p-1 rounded-lg hover:bg-red-50"><i class="fa-solid fa-trash-can"></i></button></div>${missing?'<div class="text-xs text-red-600 font-medium flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Section missing in this theme.</div>':''}${def?`<div class="grid gap-2">${fh}</div>`:''}<input type="hidden" name="sections[${idx}][type]" value="${section.type}">`;c.appendChild(card);const ip=document.createElement('div');ip.className='insert-point flex justify-center py-1';ip.setAttribute('data-position',idx+1);ip.innerHTML=`<button type="button" onclick="showInsertDropdown(event,${idx+1})" class="text-stone-400 hover:text-amber-500 hover:bg-amber-50 p-1 rounded-full transition"><i class="fa-solid fa-plus"></i></button>`;c.appendChild(ip)})}}const sb=document.getElementById('submitBtn');sb.disabled=false;sb.innerHTML=`<span id="submitText"><i class="fa-solid fa-floppy-disk mr-1"></i>Update Page</span><i id="submitIcon" class="fa-solid fa-paper-plane"></i>`;document.getElementById('formSuccess').scrollIntoView({behavior:'smooth'});setTimeout(()=>updatePreview(),300);populateSectionDropdown()}
     async function duplicatePage(){const fd=new FormData(document.getElementById('cmsForm'));const os=fd.get('pageSlug');const ot=fd.get('pageTitle');if(!os||!ot){alert('Fill in title and slug first.');return}const ns=os+'-copy-'+Date.now().toString(36);const nt=ot+' (Copy)';const seoData=collectSeoData(fd);const data={action:'saveCmsPage',route:fd.get('pageRoute')||document.getElementById('hiddenRoute').value,slug:ns,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:nt,status:'draft',sections:collectSections(fd),...seoData};try{const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const r=await res.json();if(r.success){const btn=document.querySelector('[onclick="duplicatePage()"]');btn.innerHTML='<i class="fa-solid fa-check text-emerald-500"></i> Duplicated!';btn.classList.add('text-emerald-600','border-emerald-300');setTimeout(()=>{window.location.href='?route='+encodeURIComponent(data.route)+'&edit='+encodeURIComponent(ns)},600)}}}catch(e){alert('Duplicate failed.')}}
     async function saveAsTemplate(){const fd=new FormData(document.getElementById('cmsForm'));const title=fd.get('pageTitle');if(!title){alert('Enter a page title first.');return}const tn=prompt('Template name:',title+' Template');if(!tn)return;const ts='tpl-'+tn.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const seoData=collectSeoData(fd);const data={action:'saveCmsPage',route:'templates',slug:ts,theme:fd.get('pageTheme')||document.getElementById('hiddenTheme').value,title:tn,status:'draft',sections:collectSections(fd),...seoData};try{const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(res.ok){const btn=document.querySelector('[onclick="saveAsTemplate()"]');const oh=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-check text-emerald-500"></i> Saved!';btn.classList.add('text-emerald-600','border-emerald-300');setTimeout(()=>{btn.innerHTML=oh;btn.classList.remove('text-emerald-600','border-emerald-300')},2000)}}catch(e){alert('Save template failed.')}}
     async function deletePage(slug,title){if(!confirm(`Delete "${title}"?\n\nThis cannot be undone.`))return;try{const route='<?=htmlspecialchars($activeRoute)?>';const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteCmsPage',route,slug})});if(res.ok){const r=await res.json();if(r.success){if('<?=htmlspecialchars($activeSlug??'')?>'===slug)window.location.href='?route='+encodeURIComponent(route);else window.location.reload()}}}catch(e){alert('Delete failed.')}}
+    async function deleteCategory(route){if(!confirm(`DELETE CATEGORY "/${route}" AND ALL ITS PAGES?\n\nThis is permanent and cannot be undone.`))return;try{const res=await fetch('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteCmsCategory',route})});if(res.ok){const r=await res.json();if(r.success){if('<?=htmlspecialchars($activeRoute)?>'===route)window.location.href='?route=blogs';else window.location.reload()}}}catch(e){alert('Delete category failed.')}}
     function escapeHtml(text){if(!text)return'';return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
     document.addEventListener('DOMContentLoaded',function(){loadAdminTheme();const seoDesc=document.getElementById('seo_meta_description');const seoCount=document.getElementById('seoDescCount');if(seoDesc&&seoCount){seoCount.textContent=seoDesc.value.length;seoDesc.addEventListener('input',()=>{seoCount.textContent=seoDesc.value.length;if(seoDesc.value.length>160){seoCount.classList.add('text-red-500')}else{seoCount.classList.remove('text-red-500')}})}const addBtn=document.getElementById('addSectionBtn');const dropdown=document.getElementById('sectionDropdown');if(addBtn&&dropdown){addBtn.addEventListener('click',function(e){e.stopPropagation();populateSectionDropdown();dropdown.classList.toggle('hidden')});document.addEventListener('click',function(e){if(!dropdown.contains(e.target)&&e.target!==addBtn){dropdown.classList.add('hidden')}})}const form=document.getElementById('cmsForm');if(form){form.addEventListener('input',function(e){if(e.target.closest('#sectionsContainer')||e.target.closest('#formFields'))triggerAutoSave()});const obs=new MutationObserver(function(){triggerAutoSave()});const c=document.getElementById('sectionsContainer');if(c)obs.observe(c,{childList:true,subtree:true})}<?php if($activeSlug):?>currentPreviewSlug='<?=htmlspecialchars($activeSlug)?>';currentPreviewRoute='<?=htmlspecialchars($activeRoute)?>';setTimeout(()=>updatePreview(),600);<?php endif;?>populateSectionDropdown()});
 </cscript>
