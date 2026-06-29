@@ -8,6 +8,7 @@
     <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Framework-Extensions">Framework Extensions</a></strong> — Extensions that modify or extend the core functionality of PHPue’s framework, improving performance, usability, or introducing new built-in features.</li>
     <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/PHPue-Extensions">PHPue Extensions</a></strong> — Extensions that integrate directly into the backend/, httpReqs/, components/ or views/.</li>
     <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Client-Side-Extensions">Client-Side Extensions</a></strong> — Extensions focused on enhancing the client-side experience, such as JavaScript-driven features, asset management, or interactive UI components.</li>
+    <li><strong><a href="https://github.com/ShinkuKira21/PHPue-Extensions/tree/Integrations-CMS-Bridges">Integrations & CMS Bridges</a></strong> — Complete adapters, standalone plugins, and structural bridges that port the PHPue paradigm into external platforms like WordPress and Elementor.</li>
   </ul>
 
   <h2>🔧 Framework Extensions</h2>
@@ -18,6 +19,9 @@
 
   <h2>🌐 Client-Side Extensions</h2>
   <p>This branch includes client-side extensions that add interactive features or improve asset management on the front end.</p>
+
+  <h2>🔌 Integrations & CMS Bridges</h2>
+  <p>This branch includes complete standalone plugins, packages, and ecosystem adapters designed to embed and run the PHPue framework architecture seamlessly inside foreign CMS environments and alternative web runtimes.</p>
 
   <h2>🚀 How to Contribute</h2>
   <p>If you have a great idea for an extension, feel free to contribute to the PHPue Extensions repository. To get started, fork the repository, make your changes, and submit a pull request.</p>
