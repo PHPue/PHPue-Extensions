@@ -30,7 +30,6 @@ PHPue Elementor Widget brings single-file components to Elementor.
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Building Your First Component](#-building-your-first-component)
-- [Features Deep Dive](#-features-deep-dive)
 - [AJAX Made Easy](#-ajax-made-easy)
 - [Bundling for Production](#-bundling-for-production)
 - [Security](#-security)
@@ -109,23 +108,27 @@ php wp-bundler.php
 
 ## 📸 Screenshots
 
-### PHPue Widget in Elementor Editor
-![PHPue Widget in Elementor](assets/git/elementor-widget.png)
-*The PHPue Component panel in Elementor with Script, Template, and Client Script sections.*
+### PHPue Widget in Elementor Widget Browser
+<img src="assets/git/elementor-widget.png" alt="PHPue Widget in Elementor" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+*The PHPue Component widget awaiting to be dragged.*
 
-### Frontend Rendering
-![PHPue Component Frontend](screenshots/frontend-render.png)
-*Your component rendered on the frontend with dynamic data from PHP.*
+### PHPue Widget Being Dragged to Editor
+<img src="assets/git/elementor-widget-drag.png" alt="PHPue Widget Being Dragged" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+*The PHPue Component widget being dragged to Elementor Page Editor.*
 
-### Admin Submissions Page
-![PHPue Submissions Admin](screenshots/admin-submissions.png)
-*View all form submissions at Elementor → PHPue Leads in your WordPress admin.*
+### PHPue Script Section
+<img src="assets/git/e-widget-phpue-script.png" alt="PHPue Script Section" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+*The PHPue Component panel in Elementor with Script section.*
+
+### PHPue Template Section
+<img src="assets/git/e-widget-phpue-template.png" alt="PHPue Template Section" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+*The PHPue Component panel in Elementor with Template section.*
 
 ### AJAX Form in Action
-![PHPue AJAX Form](screenshots/ajax-form.gif)
-*Smooth AJAX form submission without page reload.*
+<img src="assets/git/e-widget-form-example.png" alt="PHPue AJAX Form" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+*AJAX Form PHP code and styled form showing the power of PHPue.*
 
---=
+---
 
 ## 🚀 Quick Start
 
