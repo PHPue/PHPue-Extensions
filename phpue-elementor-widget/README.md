@@ -27,6 +27,7 @@ PHPue Elementor Widget brings single-file components to Elementor.
 ## 📖 Table of Contents
 - [Overview](#-overview)
 - [Why PHPue?](#-why-phpue)
+- [Screenshots](#-screenshots)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Building Your First Component](#-building-your-first-component)
